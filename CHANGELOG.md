@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.2] - 2026-02-14
+### Behoben
+- **Autostart-Fix**: Umstellung auf ein dediziertes Start-Skript (`start_app.sh`), um Zuverlässigkeitsprobleme beim Kiosk-Moduls zu beheben.
+- **Timing optimiert**: Wartezeit für den Serverstart auf 12 Sekunden erhöht.
+
 ## [1.1.1] - 2026-02-14
 ### Hinzugefügt
 - **Autostart-Assistent**: `setup_pi.sh` fragt nun nach der Bildschirmdrehung (Portrait/Landscape).
