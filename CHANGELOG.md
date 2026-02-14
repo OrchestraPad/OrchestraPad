@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.1] - 2026-02-14
+### Hinzugefügt
+- **Löschen-Funktion**: Stücke können jetzt über einen Löschen-Button in der Bibliothek entfernt werden. Löscht sowohl den Datenbank-Eintrag als auch die PDF-Datei.
+
 ## [1.2.0] - 2026-02-14
 ### Hinzugefügt
 - **Automatisches Kopieren**: PDFs vom USB-Stick werden jetzt automatisch auf die SD-Karte kopiert. Stücke funktionieren auch nach Entfernen des USB-Sticks.

@@ -410,6 +410,27 @@ def edit_song(song_id):
     db.session.commit()
     return jsonify({'status': 'success'})
 
+@app.route('/delete_song/<int:song_id>', methods=['DELETE'])
+def delete_song(song_id):
+    song = Song.query.get_or_404(song_id)
+    
+    # Delete the PDF file if it exists
+    file_path = os.path.join(STORAGE_PATH, song.file_path)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': f'Failed to delete file: {str(e)}'}), 500
+    
+    # Remove from all setlists
+    SetlistSong.query.filter_by(song_id=song_id).delete()
+    
+    # Delete the song from database
+    db.session.delete(song)
+    db.session.commit()
+    
+    return jsonify({'status': 'success'})
+
 @app.route('/setlists', methods=['GET', 'POST'])
 def handle_setlists():
     if request.method == 'GET':

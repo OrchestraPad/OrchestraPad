@@ -637,6 +637,9 @@
                 <button class="icon-btn" title="Bearbeiten" onclick="openEditModal(event, ${song.id}, '${title}', '${composer}', '${arranger}', '${genre}')">
                     <svg width="20" height="20"><use href="#icon-edit" /></svg>
                 </button>
+                <button class="icon-btn" title="Löschen" style="color: var(--md-sys-color-error);" onclick="deleteSong(event, ${song.id})">
+                    <svg width="20" height="20"><use href="#icon-delete" /></svg>
+                </button>
             `;
 
             if (song.entry_id) {
@@ -698,6 +701,23 @@
             fetch('/setlist_entry/' + entryId, { method: 'DELETE' }).then(() => {
                 if (currentSetlistId) loadSetlistSongs(currentSetlistId, document.getElementById('view-title').innerText);
             });
+        }
+
+        function deleteSong(e, songId) {
+            e.stopPropagation();
+            if (!confirm('Dieses Stück wirklich löschen? Die PDF-Datei wird ebenfalls gelöscht!')) return;
+            fetch('/delete_song/' + songId, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        loadSongs(); // Refresh the library
+                    } else {
+                        alert('Fehler beim Löschen: ' + (data.message || 'Unbekannter Fehler'));
+                    }
+                })
+                .catch(err => {
+                    alert('Fehler beim Löschen: ' + err.message);
+                });
         }
 
         function openEditModal(e, id, title, composer, arranger, genre) {
