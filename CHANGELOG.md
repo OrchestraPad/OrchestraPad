@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.5] - 2026-02-14
+### Behoben
+- **Keyring-Popup**: Unterdrückung des "Unlock Keyring" Fensters beim Browserstart durch Chromium-Flags.
+- **Benutzererfahrung**: Reibungsloserer Autostart ohne manuelle Passwort-Eingabe.
+
 ## [1.1.4] - 2026-02-14
 ### Behoben
 - **Autostart-Diagnose**: Ein Log-File (`autostart.log`) wird nun erstellt, um Startprobleme auf dem Pi zu analysieren.

@@ -76,9 +76,9 @@ echo \"Starte Server...\" >> $LOG_FILE
 # Wait for server
 echo \"Warte auf Server (15s)...\" >> $LOG_FILE
 sleep 15
-# Start browser in Kiosk mode
+# Start browser in Kiosk mode with suppressed keyring popup
 echo \"Starte Browser...\" >> $LOG_FILE
-$BROWSER_CMD --kiosk --incognito http://localhost:5000 >> $LOG_FILE 2>&1 &
+$BROWSER_CMD --kiosk --incognito --password-store=basic http://localhost:5000 >> $LOG_FILE 2>&1 &
 " > "$START_SCRIPT"
 chmod +x "$START_SCRIPT"
 
