@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.7] - 2026-02-14
+### Behoben
+- **Scan Info**: Debug-Informationen beim Scannen entfernt.
+- **Mappen-Auswahl**: Problem behoben, bei dem Mappen im "Hinzufügen"-Dialog nicht anklickbar waren.
+
 ## [1.2.6] - 2026-02-14
 ### Behoben
 - **JS Fehler**: `loadSongs is not defined` behoben (ersetzt durch `location.reload`).

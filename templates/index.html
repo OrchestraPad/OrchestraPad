@@ -553,11 +553,8 @@
                 if (data.copied > 0) {
                     msg += `\n${data.copied} Datei(en) vom USB-Stick kopiert.`;
                 }
-                if (data.debug && data.debug.length > 0) {
-                    msg += '\n\nDebug-Info:\n' + data.debug.join('\n');
-                }
                 alert(msg);
-                loadSongs(); // Refresh
+                location.reload(); // Refresh
             });
         }
 
@@ -678,7 +675,11 @@
                 const item = document.createElement('div');
                 item.className = 'setlist-option-item';
                 item.innerText = list.name;
-                item.onclick = () => addToSetlist(list.id, songId);
+                // Use addEventListener or direct onclick assignment on the element
+                item.onclick = function (evt) {
+                    evt.stopPropagation();
+                    addToSetlist(list.id, songId);
+                };
                 container.appendChild(item);
             });
             document.getElementById('setlist-modal').style.display = 'flex';
