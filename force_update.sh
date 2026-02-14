@@ -12,10 +12,19 @@ sudo systemctl stop orchestrapad
 echo "[3/3] Aktualisiere Abhängigkeiten..."
 
 # Upgrade build tools FIRST
-pip3 install --upgrade pip setuptools wheel --break-system-packages
-
-if [ -f "requirements.txt" ]; then
-    pip3 install -r requirements.txt --break-system-packages
+if [ -d "venv" ]; then
+    echo "Aktiviere Python venv..."
+    source venv/bin/activate
+    pip install --upgrade pip setuptools wheel
+    if [ -f "requirements.txt" ]; then
+        pip install -r requirements.txt
+    fi
+else
+    echo "Nutze System-Python (kein venv gefunden)..."
+    pip3 install --upgrade pip setuptools wheel --break-system-packages
+    if [ -f "requirements.txt" ]; then
+        pip3 install -r requirements.txt --break-system-packages
+    fi
 fi
 
 # Check for OCR (Tesseract) and Pillow dependencies
@@ -44,11 +53,15 @@ find . -name "*.pyc" -delete
 find . -name "__pycache__" -delete
 
 echo "Step 5: Restarting service..."
-# Re-install dependencies with updated tools
-pip3 install --upgrade pip setuptools wheel --break-system-packages
-pip3 install -r requirements.txt --break-system-packages
-
-sudo systemctl restart orchestrapad
+# Restart commands
+if [ -f "$HOME/.config/autostart/orchestrapad.desktop" ]; then
+    # We don't have a systemd service, so we just rely on reboot or try to kill/start manually?
+    # For now, just print message since we ask for reboot anyway.
+    echo "Service restart will happen on reboot."
+else
+    # Try systemd just in case
+    sudo systemctl restart orchestrapad || echo "Service not found, please reboot."
+fi
 sudo systemctl start orchestrapad
 
 echo ""
