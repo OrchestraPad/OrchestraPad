@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.3] - 2026-02-14
+### Hinzugefügt
+- **Systemsteuerung**: Neue Buttons in der Sidebar zum Beenden des Programms oder zum Herunterfahren des Raspberry Pi.
+- **Sicherheitsabfrage**: Bestätigungsdialoge vor dem Beenden/Ausschalten.
+
 ## [1.1.2] - 2026-02-14
 ### Behoben
 - **Autostart-Fix**: Umstellung auf ein dediziertes Start-Skript (`start_app.sh`), um Zuverlässigkeitsprobleme beim Kiosk-Moduls zu beheben.

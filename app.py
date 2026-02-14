@@ -395,5 +395,26 @@ def run_update():
     except Exception as e:
         return jsonify({"status": "error", "output": str(e)})
 
+@app.route('/system_control', methods=['POST'])
+def system_control():
+    import subprocess
+    import signal
+    action = request.json.get('action')
+    try:
+        if action == 'shutdown':
+            if os.name != 'nt':
+                subprocess.Popen(['sudo', 'poweroff'])
+                return jsonify({"status": "success", "message": "System wird heruntergefahren..."})
+            return jsonify({"status": "error", "message": "Herunterfahren nur auf dem Pi möglich."})
+            
+        elif action == 'exit':
+            # Clean exit for the python process
+            os.kill(os.getpid(), signal.SIGINT)
+            return jsonify({"status": "success", "message": "Programm wird beendet..."})
+            
+        return jsonify({"status": "error", "message": "Ungültige Aktion."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
