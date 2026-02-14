@@ -427,33 +427,51 @@
         // Filter Settings
         let currentPart = 'All';
         let manualPages = []; // Array of PDF page nums
-
-        // Load saved settings
-        const savedSettings = JSON.parse(localStorage.getItem(songKey) || '{}');
-        if (savedSettings.zoom) {
-            currentZoom = savedSettings.zoom;
-            document.getElementById('zoom-slider').value = currentZoom;
-        }
-        if (savedSettings.manualPages) {
-            manualPages = savedSettings.manualPages;
-        } else if (savedSettings.part) {
-            currentPart = savedSettings.part;
-        }
+        let cachedBboxes = {}; // { virtualPageIndex: {x,y,w,h} }
 
         // --- Init ---
-        pdfjsLib.getDocument(url).promise.then(async function (pdfDoc_) {
-            pdfDoc = pdfDoc_;
+        async function loadSongData() {
+            try {
+                // 1. Fetch settings and cached bboxes
+                const resp = await fetch(`/song_settings/{{ song.id }}`);
+                const data = await resp.json();
 
-            // 1. Detect Orientations (Fast scan of viewports)
-            await detectPageOrientations();
+                if (data.settings) {
+                    if (data.settings.zoom) {
+                        currentZoom = data.settings.zoom;
+                        document.getElementById('zoom-slider').value = currentZoom;
+                    }
+                    if (data.settings.manualPages) manualPages = data.settings.manualPages;
+                    if (data.settings.part) currentPart = data.settings.part;
+                }
 
-            // 2. Load Parts
-            await loadParts(); // This also calculates filters
+                if (data.bounding_boxes) {
+                    cachedBboxes = data.bounding_boxes;
+                }
 
-            // 3. Initial Render
-            // Restore last position? For now start at 0
-            renderPage(currentVirtualIndex);
-        });
+                // 2. Load PDF
+                const pdfDoc_ = await pdfjsLib.getDocument(url).promise;
+                pdfDoc = pdfDoc_;
+
+                // 3. Detect Orientations
+                await detectPageOrientations();
+
+                // 4. Load Parts
+                await loadParts();
+
+                // 5. Initial Render
+                renderPage(currentVirtualIndex);
+
+            } catch (err) {
+                console.error("Error loading song data:", err);
+                // Fallback to local storage if server fails? 
+                const saved = JSON.parse(localStorage.getItem(songKey) || '{}');
+                if (saved.zoom) currentZoom = saved.zoom;
+                // ...
+            }
+        }
+
+        loadSongData();
 
         async function detectPageOrientations() {
             // We just need the viewport of each page to check ratio
@@ -589,33 +607,36 @@
 
             const baseViewport = page.getViewport({ scale: 0.5 }); // Low res for speed detection
 
-            // Calculate effective width of the sub-page
-            let scanWidth = baseViewport.width;
-            let scanHeight = baseViewport.height;
-            let scanOffsetX = 0; // Where to draw the page relative to canvas 0,0
+            let bbox;
+            if (cachedBboxes[vIndex]) {
+                bbox = cachedBboxes[vIndex];
+            } else {
+                // Calculate effective width of the sub-page
+                let scanWidth = baseViewport.width;
+                let scanHeight = baseViewport.height;
+                let scanOffsetX = 0;
 
-            if (vPage.side === 'left') {
-                scanWidth = baseViewport.width / 2;
-                // Draw normally (left half is visible at 0,0)
-            } else if (vPage.side === 'right') {
-                scanWidth = baseViewport.width / 2;
-                scanOffsetX = - (baseViewport.width / 2); // Shift left to bring right half to 0,0
+                if (vPage.side === 'left') {
+                    scanWidth = baseViewport.width / 2;
+                } else if (vPage.side === 'right') {
+                    scanWidth = baseViewport.width / 2;
+                    scanOffsetX = - (baseViewport.width / 2);
+                }
+
+                const offCanvas = document.createElement('canvas');
+                offCanvas.width = scanWidth;
+                offCanvas.height = scanHeight;
+                const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+                offCtx.translate(scanOffsetX, 0);
+                await page.render({ canvasContext: offCtx, viewport: baseViewport }).promise;
+
+                bbox = getContentBoundingBox(offCtx, offCanvas.width, offCanvas.height);
+
+                // Save to cache and server
+                cachedBboxes[vIndex] = bbox;
+                saveSettingsToServer();
             }
-
-            const offCanvas = document.createElement('canvas');
-            offCanvas.width = scanWidth;
-            offCanvas.height = scanHeight;
-            const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
-
-            // Transform context to handle offset
-            offCtx.translate(scanOffsetX, 0);
-
-            await page.render({ canvasContext: offCtx, viewport: baseViewport }).promise;
-
-            // 2. Auto-Crop Analysis on the partial image
-            // We need to reset transform to read pixels correctly or just read form 0,0
-            // getImageData reads device pixels, so we are good.
-            const bbox = getContentBoundingBox(offCtx, offCanvas.width, offCanvas.height);
 
             // Restore context for sanity (though we discard it)
             offCtx.setTransform(1, 0, 0, 1, 0, 0);
@@ -809,10 +830,7 @@
             } else {
                 currentPart = val;
                 manualPages = [];
-                const settings = JSON.parse(localStorage.getItem(songKey) || '{}');
-                settings.part = currentPart;
-                settings.manualPages = null;
-                localStorage.setItem(songKey, JSON.stringify(settings));
+                saveSettingsToServer();
             }
             calculateVirtualPages();
             currentVirtualIndex = 0; // Reset to start
@@ -829,12 +847,7 @@
                 }
             });
             manualPages = selected.sort((a, b) => a - b);
-
-            // Save settings
-            const settings = JSON.parse(localStorage.getItem(songKey) || '{}');
-            settings.manualPages = manualPages;
-            settings.part = null;
-            localStorage.setItem(songKey, JSON.stringify(settings));
+            saveSettingsToServer();
 
             document.getElementById('part-select').value = 'Manual';
 
@@ -889,11 +902,30 @@
         // --- Common Listeners ---
         document.getElementById('zoom-slider').addEventListener('input', (e) => {
             currentZoom = e.target.value;
-            const settings = JSON.parse(localStorage.getItem(songKey) || '{}');
-            settings.zoom = currentZoom;
-            localStorage.setItem(songKey, JSON.stringify(settings));
+            // Debounce save? For zoom maybe local is enough, but user wants persistence
+            saveSettingsToServer();
             renderPage(currentVirtualIndex);
         });
+
+        function saveSettingsToServer() {
+            const data = {
+                settings: {
+                    zoom: currentZoom,
+                    manualPages: manualPages,
+                    part: currentPart
+                },
+                bounding_boxes: cachedBboxes
+            };
+
+            fetch(`/song_settings/{{ song.id }}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            // Still save to localStorage as fallback
+            localStorage.setItem(songKey, JSON.stringify(data.settings));
+        }
 
         // ... (Drawing toggle and events essentially same, just need saveAnnotations update) 
 

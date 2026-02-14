@@ -2,6 +2,14 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.7] - 2026-02-14
+### Hinzugefügt
+- **Dauerhafte Einstellungen**: Zoom, Seitenwahl und Stimmen-Filter werden jetzt in der Datenbank gespeichert und bleiben auch nach einem Neustart (im Inkognito-Modus) erhalten.
+- **USB-Autosuche**: Beim Aktualisieren werden nun alle angeschlossenen USB-Sticks (unter `/media/pi/`) automatisch nach PDFs durchsucht.
+
+### Optimiert
+- **Blätter-Geschwindigkeit**: Der optimale Seitenzuschnitt (Auto-Crop) wird jetzt gecacht, was das Umblättern deutlich beschleunigt.
+
 ## [1.1.6] - 2026-02-14
 ### Behoben
 - **Beenden-Fehler**: Server-Beenden verzögert, um "Failed to fetch" Fehler zu vermeiden.

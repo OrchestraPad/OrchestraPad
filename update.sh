@@ -30,6 +30,10 @@ echo "[3/3] Aktualisiere Abhängigkeiten (Python Packages)..."
 if [ -d "venv" ]; then
     source venv/bin/activate
     pip install -r requirements.txt
+    
+    # 4. Database Migration
+    echo "[4/4] Prüfe Datenbank-Struktur (Migration)..."
+    python migrate_db.py
 else
     echo "FEHLER: venv nicht gefunden. Bitte setup_pi.sh erneut ausführen."
     exit 1

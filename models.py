@@ -10,6 +10,8 @@ class Song(db.Model):
     genre = db.Column(db.String(50), nullable=True)
     file_path = db.Column(db.String(500), unique=True, nullable=False)
     detected_parts = db.Column(db.JSON, nullable=True) # Stores {instrument: [pages]}
+    settings = db.Column(db.JSON, nullable=True) # Stores {zoom, manualPages, part}
+    bounding_boxes = db.Column(db.JSON, nullable=True) # Stores {virtualPageIndex: {x, y, w, h}}
 
 class Setlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)

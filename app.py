@@ -4,7 +4,8 @@ from models import db, Song, Setlist, SetlistSong
 from pypdf import PdfReader
 
 # Configuration
-STORAGE_PATH = os.path.join(os.getcwd(), 'usb_drive')  # For dev: local folder
+STORAGE_PATH = os.path.join(os.getcwd(), 'usb_drive')
+USB_BASE_PATH = '/media/pi' # Default Raspberry Pi mount point
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///music.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -285,21 +286,36 @@ def index():
 
 @app.route('/scan')
 def scan_library():
-    """Scans the storage directory for PDFs and updates the database."""
+    """Scans multiple locations for PDFs and updates the database."""
     added = 0
-    if not os.path.exists(STORAGE_PATH):
-        os.makedirs(STORAGE_PATH)
+    
+    # Locations to scan
+    scan_paths = [STORAGE_PATH]
+    if os.path.exists(USB_BASE_PATH):
+        # Scan all subdirectories (each mounted USB stick)
+        for mount in os.listdir(USB_BASE_PATH):
+            full_mount = os.path.join(USB_BASE_PATH, mount)
+            if os.path.isdir(full_mount):
+                scan_paths.append(full_mount)
+    
+    for base_path in scan_paths:
+        if not os.path.exists(base_path): continue
         
-    for root, dirs, files in os.walk(STORAGE_PATH):
-        for file in files:
-            if file.lower().endswith('.pdf'):
-                rel_path = os.path.relpath(os.path.join(root, file), STORAGE_PATH)
-                # Check if song exists
-                existing = Song.query.filter_by(file_path=rel_path).first()
-                if not existing:
-                    new_song = Song(title=file[:-4], file_path=rel_path)
-                    db.session.add(new_song)
-                    added += 1
+        for root, dirs, files in os.walk(base_path):
+            for file in files:
+                if file.lower().endswith('.pdf'):
+                    abs_path = os.path.join(root, file)
+                    # We store absolute paths if outside local usb_drive, or relative if inside
+                    if base_path == STORAGE_PATH:
+                        db_path = os.path.relpath(abs_path, STORAGE_PATH)
+                    else:
+                        db_path = abs_path
+                        
+                    existing = Song.query.filter_by(file_path=db_path).first()
+                    if not existing:
+                        new_song = Song(title=file[:-4], file_path=db_path)
+                        db.session.add(new_song)
+                        added += 1
     
     db.session.commit()
     return jsonify({'status': 'success', 'added': added})
@@ -367,7 +383,33 @@ def view_song(song_id):
 
 @app.route('/pdf/<path:filename>')
 def serve_pdf(filename):
-    return send_from_directory(STORAGE_PATH, filename)
+    # Try local storage first
+    if os.path.exists(os.path.join(STORAGE_PATH, filename)):
+        return send_from_directory(STORAGE_PATH, filename)
+    # Otherwise it might be an absolute path from a USB stick
+    if os.path.exists(filename):
+        directory = os.path.dirname(filename)
+        base_name = os.path.basename(filename)
+        return send_from_directory(directory, base_name)
+    return "File not found", 404
+
+@app.route('/song_settings/<int:song_id>', methods=['GET', 'POST'])
+def song_settings(song_id):
+    song = Song.query.get_or_404(song_id)
+    if request.method == 'POST':
+        data = request.json
+        if 'settings' in data:
+            song.settings = data['settings']
+        if 'bounding_boxes' in data:
+            # Merge or replace? Replace is safer for this state
+            song.bounding_boxes = data['bounding_boxes']
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    
+    return jsonify({
+        'settings': song.settings or {},
+        'bounding_boxes': song.bounding_boxes or {}
+    })
 
 @app.route('/changelog')
 def get_changelog():
