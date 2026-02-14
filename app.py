@@ -288,6 +288,7 @@ def index():
 def scan_library():
     """Scans multiple locations for PDFs and updates the database."""
     added = 0
+    debug_info = []
     
     # Ensure local storage path exists
     if not os.path.exists(STORAGE_PATH):
@@ -295,19 +296,36 @@ def scan_library():
     
     # Locations to scan
     scan_paths = [STORAGE_PATH]
+    debug_info.append(f"Local storage: {STORAGE_PATH}")
+    
     if os.path.exists(USB_BASE_PATH):
+        debug_info.append(f"USB base path exists: {USB_BASE_PATH}")
         # Scan all subdirectories (each mounted USB stick)
-        for mount in os.listdir(USB_BASE_PATH):
-            full_mount = os.path.join(USB_BASE_PATH, mount)
-            if os.path.isdir(full_mount):
-                scan_paths.append(full_mount)
+        try:
+            mounts = os.listdir(USB_BASE_PATH)
+            debug_info.append(f"Found {len(mounts)} mount(s): {mounts}")
+            for mount in mounts:
+                full_mount = os.path.join(USB_BASE_PATH, mount)
+                if os.path.isdir(full_mount):
+                    scan_paths.append(full_mount)
+                    debug_info.append(f"Added mount point: {full_mount}")
+        except Exception as e:
+            debug_info.append(f"Error listing USB mounts: {str(e)}")
+    else:
+        debug_info.append(f"USB base path does not exist: {USB_BASE_PATH}")
+    
+    debug_info.append(f"Total scan paths: {len(scan_paths)}")
     
     for base_path in scan_paths:
-        if not os.path.exists(base_path): continue
+        if not os.path.exists(base_path):
+            debug_info.append(f"Skipping non-existent path: {base_path}")
+            continue
         
+        files_in_path = 0
         for root, dirs, files in os.walk(base_path):
             for file in files:
                 if file.lower().endswith('.pdf'):
+                    files_in_path += 1
                     abs_path = os.path.join(root, file)
                     # We store absolute paths if outside local usb_drive, or relative if inside
                     if base_path == STORAGE_PATH:
@@ -320,9 +338,15 @@ def scan_library():
                         new_song = Song(title=file[:-4], file_path=db_path)
                         db.session.add(new_song)
                         added += 1
+        
+        debug_info.append(f"Found {files_in_path} PDF(s) in {base_path}, {added} new")
     
     db.session.commit()
-    return jsonify({'status': 'success', 'added': added})
+    return jsonify({
+        'status': 'success', 
+        'added': added,
+        'debug': debug_info
+    })
 
 @app.route('/edit_song/<int:song_id>', methods=['POST'])
 def edit_song(song_id):

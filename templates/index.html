@@ -540,10 +540,15 @@
         let allSetlists = [];
         let currentSetlistId = null;
 
-        function rescan() {
-            fetch('/scan').then(r => r.json()).then(d => {
-                alert(d.added + ' neue Stücke gefunden!');
-                location.reload();
+        function scanLibrary() {
+            if (!confirm('Bibliothek nach neuen PDFs durchsuchen?')) return;
+            fetch('/scan').then(r => r.json()).then(data => {
+                let msg = `${data.added} neue(s) Stück(e) hinzugefügt.`;
+                if (data.debug && data.debug.length > 0) {
+                    msg += '\n\nDebug-Info:\n' + data.debug.join('\n');
+                }
+                alert(msg);
+                loadSongs(); // Refresh
             });
         }
 

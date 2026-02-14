@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.9] - 2026-02-14
+### Hinzugefügt
+- **Debug-Info**: Beim "Aktualisieren" werden jetzt detaillierte Informationen angezeigt, welche Pfade gescannt werden und warum USB-Sticks eventuell nicht gefunden werden.
+
 ## [1.1.8] - 2026-02-14
 ### Behoben
 - **Kritischer Fehler**: Schwarzer Bildschirm beim Öffnen von Stücken (JavaScript-Referenzfehler in viewer.html).
