@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.5] - 2026-02-14
+### Behoben
+- **Löschen-Button in allen Ansichten**: Der Löschen-Button wird nun auch beim ersten Laden der Bibliothek ("Alle Noten") korrekt angezeigt.
+
 ## [1.2.4] - 2026-02-14
 ### Behoben
 - **Löschen-Button sichtbar**: Buttons werden jetzt korrekt in allen Ansichten angezeigt (Library und Setlists).

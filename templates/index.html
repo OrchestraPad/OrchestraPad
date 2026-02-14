@@ -431,9 +431,15 @@
                             </svg>
                         </button>
                         <button class="icon-btn" title="Bearbeiten"
-                            onclick="openEditModal(event, {{ song.id }}, '{{ song.title }}', '{{ song.composer or '' }}', '{{ song.arranger or '' }}', '{{ song.genre or '' }}')">
+                            onclick="openEditModal(event, {{ song.id }}, '{{ (song.title or '')|replace("'", "\\'") }}', '{{ (song.composer or '')|replace("'", "\\'") }}', '{{ (song.arranger or '')|replace("'", "\\'") }}', '{{ (song.genre or '')|replace("'", "\\'") }}')">
                             <svg width="20" height="20">
                                 <use href="#icon-edit" />
+                            </svg>
+                        </button>
+                        <button class="icon-btn" title="Löschen" style="color: var(--md-sys-color-error);"
+                            onclick="deleteSong(event, {{ song.id }})">
+                            <svg width="20" height="20">
+                                <use href="#icon-delete" />
                             </svg>
                         </button>
                     </div>
