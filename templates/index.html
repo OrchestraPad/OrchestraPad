@@ -544,6 +544,9 @@
             if (!confirm('Bibliothek nach neuen PDFs durchsuchen?')) return;
             fetch('/scan').then(r => r.json()).then(data => {
                 let msg = `${data.added} neue(s) Stück(e) hinzugefügt.`;
+                if (data.copied > 0) {
+                    msg += `\n${data.copied} Datei(en) vom USB-Stick kopiert.`;
+                }
                 if (data.debug && data.debug.length > 0) {
                     msg += '\n\nDebug-Info:\n' + data.debug.join('\n');
                 }

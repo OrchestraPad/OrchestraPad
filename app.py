@@ -288,6 +288,7 @@ def index():
 def scan_library():
     """Scans multiple locations for PDFs and updates the database."""
     added = 0
+    copied = 0
     debug_info = []
     
     # Ensure local storage path exists
@@ -344,29 +345,57 @@ def scan_library():
             continue
         
         files_in_path = 0
+        is_external = (base_path != STORAGE_PATH)
+        
         for root, dirs, files in os.walk(base_path):
             for file in files:
                 if file.lower().endswith('.pdf'):
                     files_in_path += 1
-                    abs_path = os.path.join(root, file)
-                    # We store absolute paths if outside local usb_drive, or relative if inside
-                    if base_path == STORAGE_PATH:
-                        db_path = os.path.relpath(abs_path, STORAGE_PATH)
-                    else:
-                        db_path = abs_path
+                    source_path = os.path.join(root, file)
+                    
+                    # For external sources (USB), copy to local storage
+                    if is_external:
+                        # Create a safe filename (remove special chars, keep original name)
+                        safe_filename = file.replace(' ', '_')
+                        # If file exists, add number suffix
+                        target_path = os.path.join(STORAGE_PATH, safe_filename)
+                        counter = 1
+                        name_without_ext = safe_filename[:-4]
+                        while os.path.exists(target_path):
+                            safe_filename = f"{name_without_ext}_{counter}.pdf"
+                            target_path = os.path.join(STORAGE_PATH, safe_filename)
+                            counter += 1
                         
+                        # Copy file to local storage
+                        try:
+                            import shutil
+                            shutil.copy2(source_path, target_path)
+                            db_path = safe_filename
+                            copied += 1
+                            debug_info.append(f"Copied: {file} -> {safe_filename}")
+                        except Exception as e:
+                            debug_info.append(f"Error copying {file}: {str(e)}")
+                            continue
+                    else:
+                        # For local files, just use relative path
+                        db_path = os.path.relpath(source_path, STORAGE_PATH)
+                        
+                    # Check if song exists
                     existing = Song.query.filter_by(file_path=db_path).first()
                     if not existing:
                         new_song = Song(title=file[:-4], file_path=db_path)
                         db.session.add(new_song)
                         added += 1
         
-        debug_info.append(f"Found {files_in_path} PDF(s) in {base_path}, {added} new")
+        debug_info.append(f"Found {files_in_path} PDF(s) in {base_path}")
+    
+    debug_info.append(f"Summary: {added} new songs added, {copied} files copied from USB")
     
     db.session.commit()
     return jsonify({
         'status': 'success', 
         'added': added,
+        'copied': copied,
         'debug': debug_info
     })
 

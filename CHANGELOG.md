@@ -2,6 +2,13 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.0] - 2026-02-14
+### Hinzugefügt
+- **Automatisches Kopieren**: PDFs vom USB-Stick werden jetzt automatisch auf die SD-Karte kopiert. Stücke funktionieren auch nach Entfernen des USB-Sticks.
+
+### Behoben
+- **Schwarzer Bildschirm**: USB-Stücke lassen sich jetzt korrekt öffnen.
+
 ## [1.1.11] - 2026-02-14
 ### Verbessert
 - **USB-Erkennung**: Sucht jetzt an mehreren Orten nach USB-Sticks (/media/*, /mnt/*, etc.) statt nur /media/pi.
