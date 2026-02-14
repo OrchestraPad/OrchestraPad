@@ -10,6 +10,10 @@ sudo systemctl stop orchestrapad
 
 # 3. Install Dependencies
 echo "[3/3] Aktualisiere Abhängigkeiten..."
+
+# Upgrade build tools FIRST
+pip3 install --upgrade pip setuptools wheel --break-system-packages
+
 if [ -f "requirements.txt" ]; then
     pip3 install -r requirements.txt --break-system-packages
 fi

@@ -32,6 +32,15 @@ fi
 
 # 3. Install Dependencies
 echo "[3/3] Aktualisiere Abhängigkeiten..."
+
+# Upgrade build tools FIRST
+if [ -d "venv" ]; then
+    source venv/bin/activate
+    pip install --upgrade pip setuptools wheel
+else
+    pip3 install --upgrade pip setuptools wheel --break-system-packages
+fi
+
 if [ -f "requirements.txt" ]; then
     pip3 install -r requirements.txt --break-system-packages
 fi
