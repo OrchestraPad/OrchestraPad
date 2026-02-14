@@ -306,20 +306,20 @@
         <div class="divider"></div>
 
         <button class="icon-btn" onclick="toggleDrawingMode()" id="btn-draw" title="Zeichnen">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" fill="currentColor">
                 <path
                     d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
             </svg>
         </button>
         <button class="icon-btn" onclick="openOCRModal()" id="btn-ocr" title="Stimmen erkennen">
-            <svg viewBox="0 0 24 24">
+            <svg viewBox="0 0 24 24" fill="currentColor">
                 <path
                     d="M15 3V7.5L15 8H19V6H16V5H19V4H16V3H19C20.1 3 21 3.9 21 5V8C21 9.1 20.1 10 19 10H15V13H17V12H19V11H17V10H19C20.1 10 21 10.9 21 12V15C21 16.1 20.1 17 19 17H15V21H11V17H7V21H3V17C1.9 17 1 16.1 1 15V12C1 10.9 1.9 10 3 10H5V8H3C1.9 8 1 7.1 1 6V3H3V4H6V5H3V6H6V8H3V9H5V12H3V13H5V14H3V15H5V16H11V15H13V12H11V11H13V10H11V9H13V8H11V5H15V4H11V3H15M17 14H19V15H17V14M5 4H7V8H5V4M5 11H7V15H5V11M15 11H13.5L15.3 15H16.7L18.5 11H17L16 13.5L15 11Z" />
             </svg>
         </button>
         <button class="icon-btn" onclick="toggleFullscreen()" title="Vollbild">
-            <svg width="24" height="24">
-                <use href="#icon-delete" />
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z" />
             </svg>
         </button>
 
@@ -334,11 +334,7 @@
                 <use href="#icon-pages" />
             </svg>
         </button>
-
-        <button id="ocr-btn" class="icon-btn" onclick="startOcr()" title="Scan">
-            <svg width="24" height="24">
-                <use href="#icon-scan" />
-            </svg>
+        </svg>
         </button>
 
         <div class="divider"></div>
@@ -1026,6 +1022,192 @@
             const el = document.getElementById('feedback-' + side);
             el.classList.add('active'); setTimeout(() => el.classList.remove('active'), 200);
         }
+        // OCR Logic
+        let ocrStartX, ocrStartY, ocrBox = { x: 0, y: 0, w: 0, h: 0 };
+        const ocrOverlay = document.getElementById('ocr-overlay');
+        const ocrBoxDiv = document.getElementById('ocr-box');
+
+        function openOCRModal() {
+            ocrOverlay.style.display = 'block';
+            // Reset box
+            ocrBoxDiv.style.display = 'none';
+            ocrBox = { x: 0, y: 0, w: 0, h: 0 };
+        }
+
+        function closeOCRMode() {
+            ocrOverlay.style.display = 'none';
+        }
+
+        // Mouse events for OCR drawing
+        ocrOverlay.onmousedown = function (e) {
+            if (e.target.tagName === 'BUTTON') return;
+            ocrStartX = e.clientX;
+            ocrStartY = e.clientY;
+            ocrBoxDiv.style.display = 'block';
+            ocrBoxDiv.style.left = ocrStartX + 'px';
+            ocrBoxDiv.style.top = ocrStartY + 'px';
+            ocrBoxDiv.style.width = '0px';
+            ocrBoxDiv.style.height = '0px';
+
+            ocrOverlay.onmousemove = function (e) {
+                let w = e.clientX - ocrStartX;
+                let h = e.clientY - ocrStartY;
+                ocrBoxDiv.style.width = Math.abs(w) + 'px';
+                ocrBoxDiv.style.height = Math.abs(h) + 'px';
+                ocrBoxDiv.style.left = (w < 0 ? e.clientX : ocrStartX) + 'px';
+                ocrBoxDiv.style.top = (h < 0 ? e.clientY : ocrStartY) + 'px';
+            };
+
+            ocrOverlay.onmouseup = function (e) {
+                ocrOverlay.onmousemove = null;
+                ocrOverlay.onmouseup = null;
+                // Calculate percentage relative to canvas
+                const canvas = document.querySelector('canvas'); // The main PDF canvas
+                const rect = canvas.getBoundingClientRect();
+
+                // Get box rect
+                const boxRect = ocrBoxDiv.getBoundingClientRect();
+
+                // Calculate relative to PDF canvas
+                ocrBox = {
+                    x: ((boxRect.left - rect.left) / rect.width) * 100,
+                    y: ((boxRect.top - rect.top) / rect.height) * 100,
+                    w: (boxRect.width / rect.width) * 100,
+                    h: (boxRect.height / rect.height) * 100
+                };
+                console.log("OCR Box:", ocrBox);
+            };
+        };
+
+        // Also support touch
+        ocrOverlay.ontouchstart = function (e) {
+            if (e.target.tagName === 'BUTTON') return;
+            const touch = e.touches[0];
+            ocrStartX = touch.clientX;
+            ocrStartY = touch.clientY;
+            ocrBoxDiv.style.display = 'block';
+
+            ocrOverlay.ontouchmove = function (e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                let w = touch.clientX - ocrStartX;
+                let h = touch.clientY - ocrStartY;
+                ocrBoxDiv.style.width = Math.abs(w) + 'px';
+                ocrBoxDiv.style.height = Math.abs(h) + 'px';
+                ocrBoxDiv.style.left = (w < 0 ? touch.clientX : ocrStartX) + 'px';
+                ocrBoxDiv.style.top = (h < 0 ? touch.clientY : ocrStartY) + 'px';
+            };
+
+            ocrOverlay.ontouchend = function (e) {
+                ocrOverlay.ontouchmove = null;
+                // Recalc logic same as mouse...
+                const canvas = document.querySelector('canvas');
+                const rect = canvas.getBoundingClientRect();
+                const boxRect = ocrBoxDiv.getBoundingClientRect();
+
+                ocrBox = {
+                    x: ((boxRect.left - rect.left) / rect.width) * 100,
+                    y: ((boxRect.top - rect.top) / rect.height) * 100,
+                    w: (boxRect.width / rect.width) * 100,
+                    h: (boxRect.height / rect.height) * 100
+                };
+            };
+        };
+
+        function testOCR() {
+            if (ocrBox.w === 0) { alert("Bitte erst einen Bereich markieren!"); return; }
+
+            fetch('/scan_part_region', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    song_id: song.id,
+                    page: virtualPages[currentVirtualIndex].pdfPage,
+                    box: ocrBox
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("Erkannt: " + data.text);
+                    } else {
+                        alert("Fehler: " + data.message);
+                    }
+                });
+        }
+
+        function scanAllPages() {
+            if (ocrBox.w === 0) { alert("Bitte erst einen Bereich markieren!"); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+
+            fetch('/scan_all_pages_region', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    song_id: song.id,
+                    box: ocrBox
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    if (data.status === 'success') {
+                        showOCRResults(data.results);
+                    } else {
+                        alert("Fehler: " + data.message);
+                    }
+                });
+        }
+
+        function showOCRResults(results) {
+            const listDiv = document.getElementById('ocr-results-list');
+            listDiv.innerHTML = '';
+
+            for (const [page, text] of Object.entries(results)) {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '10px';
+                row.innerHTML = `
+                    <span style="width: 60px;">Seite ${page}:</span>
+                    <input type="text" value="${text}" class="input-pill" style="flex: 1;">
+                `;
+                listDiv.appendChild(row);
+            }
+
+            document.getElementById('ocr-results-modal').style.display = 'flex';
+        }
+
+        function saveOCRResults() {
+            // Collect data from inputs
+            const inputs = document.querySelectorAll('#ocr-results-list input');
+            const mapping = {};
+
+            inputs.forEach((input, index) => {
+                const text = input.value.trim();
+                if (text) {
+                    if (!mapping[text]) mapping[text] = [];
+                    mapping[text].push(index + 1); // 1-based page index
+                }
+            });
+
+            fetch('/save_part_mapping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    song_id: song.id,
+                    parts: mapping
+                })
+            })
+                .then(r => r.json())
+                .then(() => {
+                    document.getElementById('ocr-results-modal').style.display = 'none';
+                    closeOCRMode();
+                    alert("Stimmen gespeichert!");
+                    location.reload();
+                });
+        }
         document.addEventListener('keydown', (e) => {
             if (isDrawingMode) return;
             if (['ArrowRight', 'Space', 'Enter', 'PageDown'].includes(e.key) || e.code == 'Space') { triggerFeedback('right'); nextPage(); }
@@ -1037,6 +1219,192 @@
                 document.getElementById('toolbar').classList.toggle('visible');
             }
         });
+        // OCR Logic
+        let ocrStartX, ocrStartY, ocrBox = { x: 0, y: 0, w: 0, h: 0 };
+        const ocrOverlay = document.getElementById('ocr-overlay');
+        const ocrBoxDiv = document.getElementById('ocr-box');
+
+        function openOCRModal() {
+            ocrOverlay.style.display = 'block';
+            // Reset box
+            ocrBoxDiv.style.display = 'none';
+            ocrBox = { x: 0, y: 0, w: 0, h: 0 };
+        }
+
+        function closeOCRMode() {
+            ocrOverlay.style.display = 'none';
+        }
+
+        // Mouse events for OCR drawing
+        ocrOverlay.onmousedown = function (e) {
+            if (e.target.tagName === 'BUTTON') return;
+            ocrStartX = e.clientX;
+            ocrStartY = e.clientY;
+            ocrBoxDiv.style.display = 'block';
+            ocrBoxDiv.style.left = ocrStartX + 'px';
+            ocrBoxDiv.style.top = ocrStartY + 'px';
+            ocrBoxDiv.style.width = '0px';
+            ocrBoxDiv.style.height = '0px';
+
+            ocrOverlay.onmousemove = function (e) {
+                let w = e.clientX - ocrStartX;
+                let h = e.clientY - ocrStartY;
+                ocrBoxDiv.style.width = Math.abs(w) + 'px';
+                ocrBoxDiv.style.height = Math.abs(h) + 'px';
+                ocrBoxDiv.style.left = (w < 0 ? e.clientX : ocrStartX) + 'px';
+                ocrBoxDiv.style.top = (h < 0 ? e.clientY : ocrStartY) + 'px';
+            };
+
+            ocrOverlay.onmouseup = function (e) {
+                ocrOverlay.onmousemove = null;
+                ocrOverlay.onmouseup = null;
+                // Calculate percentage relative to canvas
+                const canvas = document.querySelector('canvas'); // The main PDF canvas
+                const rect = canvas.getBoundingClientRect();
+
+                // Get box rect
+                const boxRect = ocrBoxDiv.getBoundingClientRect();
+
+                // Calculate relative to PDF canvas
+                ocrBox = {
+                    x: ((boxRect.left - rect.left) / rect.width) * 100,
+                    y: ((boxRect.top - rect.top) / rect.height) * 100,
+                    w: (boxRect.width / rect.width) * 100,
+                    h: (boxRect.height / rect.height) * 100
+                };
+                console.log("OCR Box:", ocrBox);
+            };
+        };
+
+        // Also support touch
+        ocrOverlay.ontouchstart = function (e) {
+            if (e.target.tagName === 'BUTTON') return;
+            const touch = e.touches[0];
+            ocrStartX = touch.clientX;
+            ocrStartY = touch.clientY;
+            ocrBoxDiv.style.display = 'block';
+
+            ocrOverlay.ontouchmove = function (e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                let w = touch.clientX - ocrStartX;
+                let h = touch.clientY - ocrStartY;
+                ocrBoxDiv.style.width = Math.abs(w) + 'px';
+                ocrBoxDiv.style.height = Math.abs(h) + 'px';
+                ocrBoxDiv.style.left = (w < 0 ? touch.clientX : ocrStartX) + 'px';
+                ocrBoxDiv.style.top = (h < 0 ? touch.clientY : ocrStartY) + 'px';
+            };
+
+            ocrOverlay.ontouchend = function (e) {
+                ocrOverlay.ontouchmove = null;
+                // Recalc logic same as mouse...
+                const canvas = document.querySelector('canvas');
+                const rect = canvas.getBoundingClientRect();
+                const boxRect = ocrBoxDiv.getBoundingClientRect();
+
+                ocrBox = {
+                    x: ((boxRect.left - rect.left) / rect.width) * 100,
+                    y: ((boxRect.top - rect.top) / rect.height) * 100,
+                    w: (boxRect.width / rect.width) * 100,
+                    h: (boxRect.height / rect.height) * 100
+                };
+            };
+        };
+
+        function testOCR() {
+            if (ocrBox.w === 0) { alert("Bitte erst einen Bereich markieren!"); return; }
+
+            fetch('/scan_part_region', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    song_id: song.id,
+                    page: virtualPages[currentVirtualIndex].pdfPage,
+                    box: ocrBox
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("Erkannt: " + data.text);
+                    } else {
+                        alert("Fehler: " + data.message);
+                    }
+                });
+        }
+
+        function scanAllPages() {
+            if (ocrBox.w === 0) { alert("Bitte erst einen Bereich markieren!"); return; }
+
+            document.getElementById('loading-overlay').style.display = 'flex';
+
+            fetch('/scan_all_pages_region', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    song_id: song.id,
+                    box: ocrBox
+                })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    if (data.status === 'success') {
+                        showOCRResults(data.results);
+                    } else {
+                        alert("Fehler: " + data.message);
+                    }
+                });
+        }
+
+        function showOCRResults(results) {
+            const listDiv = document.getElementById('ocr-results-list');
+            listDiv.innerHTML = '';
+
+            for (const [page, text] of Object.entries(results)) {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '10px';
+                row.innerHTML = `
+                    <span style="width: 60px;">Seite ${page}:</span>
+                    <input type="text" value="${text}" class="input-pill" style="flex: 1;">
+                `;
+                listDiv.appendChild(row);
+            }
+
+            document.getElementById('ocr-results-modal').style.display = 'flex';
+        }
+
+        function saveOCRResults() {
+            // Collect data from inputs
+            const inputs = document.querySelectorAll('#ocr-results-list input');
+            const mapping = {};
+
+            inputs.forEach((input, index) => {
+                const text = input.value.trim();
+                if (text) {
+                    if (!mapping[text]) mapping[text] = [];
+                    mapping[text].push(index + 1); // 1-based page index
+                }
+            });
+
+            fetch('/save_part_mapping', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    song_id: song.id,
+                    parts: mapping
+                })
+            })
+                .then(r => r.json())
+                .then(() => {
+                    document.getElementById('ocr-results-modal').style.display = 'none';
+                    closeOCRMode();
+                    alert("Stimmen gespeichert!");
+                    location.reload();
+                });
+        }
     </script>
 </body>
 
