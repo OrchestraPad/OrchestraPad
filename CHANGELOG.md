@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.11] - 2026-02-14
+### Verbessert
+- **USB-Erkennung**: Sucht jetzt an mehreren Orten nach USB-Sticks (/media/*, /mnt/*, etc.) statt nur /media/pi.
+
 ## [1.1.10] - 2026-02-14
 ### Behoben
 - **Kritischer Fehler**: Aktualisieren-Button funktioniert wieder (Funktionsname korrigiert).

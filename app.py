@@ -298,21 +298,43 @@ def scan_library():
     scan_paths = [STORAGE_PATH]
     debug_info.append(f"Local storage: {STORAGE_PATH}")
     
-    if os.path.exists(USB_BASE_PATH):
-        debug_info.append(f"USB base path exists: {USB_BASE_PATH}")
-        # Scan all subdirectories (each mounted USB stick)
-        try:
-            mounts = os.listdir(USB_BASE_PATH)
-            debug_info.append(f"Found {len(mounts)} mount(s): {mounts}")
-            for mount in mounts:
-                full_mount = os.path.join(USB_BASE_PATH, mount)
-                if os.path.isdir(full_mount):
-                    scan_paths.append(full_mount)
-                    debug_info.append(f"Added mount point: {full_mount}")
-        except Exception as e:
-            debug_info.append(f"Error listing USB mounts: {str(e)}")
-    else:
-        debug_info.append(f"USB base path does not exist: {USB_BASE_PATH}")
+    # Check multiple common USB mount locations
+    usb_search_paths = [
+        '/media',      # Check all /media subdirectories
+        '/mnt',        # Alternative mount point
+        '/media/pi',   # Older Raspberry Pi OS
+    ]
+    
+    for base in usb_search_paths:
+        if os.path.exists(base):
+            debug_info.append(f"Checking mount base: {base}")
+            try:
+                # If it's /media or /mnt, check all subdirectories
+                if base in ['/media', '/mnt']:
+                    for username_or_mount in os.listdir(base):
+                        user_media = os.path.join(base, username_or_mount)
+                        if os.path.isdir(user_media):
+                            # Check if this is a mount point or contains mounts
+                            # For /media/username, list subdirectories (each USB stick)
+                            try:
+                                for mount in os.listdir(user_media):
+                                    full_mount = os.path.join(user_media, mount)
+                                    if os.path.isdir(full_mount):
+                                        scan_paths.append(full_mount)
+                                        debug_info.append(f"Added USB mount: {full_mount}")
+                            except PermissionError:
+                                debug_info.append(f"Permission denied: {user_media}")
+                else:
+                    # For /media/pi, scan subdirectories directly
+                    for mount in os.listdir(base):
+                        full_mount = os.path.join(base, mount)
+                        if os.path.isdir(full_mount):
+                            scan_paths.append(full_mount)
+                            debug_info.append(f"Added USB mount: {full_mount}")
+            except Exception as e:
+                debug_info.append(f"Error scanning {base}: {str(e)}")
+        else:
+            debug_info.append(f"Mount base does not exist: {base}")
     
     debug_info.append(f"Total scan paths: {len(scan_paths)}")
     
