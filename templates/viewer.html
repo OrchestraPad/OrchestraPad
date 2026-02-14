@@ -412,6 +412,64 @@
         </div>
     </div>
 
+    <!-- OCR Selection Overlay -->
+    <div id="ocr-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; cursor: crosshair;">
+        <div id="ocr-box"
+            style="display: none; position: absolute; border: 2px solid red; background: rgba(255, 0, 0, 0.2); pointer-events: none;">
+        </div>
+        <div
+            style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 20px; color: white; pointer-events: auto;">
+            <span>Bereich markieren (Stimme/Instrument)</span>
+            <button onclick="closeOCRMode()"
+                style="margin-left: 15px; padding: 5px 10px; background: #666; border: none; color: white; border-radius: 5px; cursor: pointer;">Abbrechen</button>
+            <button onclick="testOCR()"
+                style="margin-left: 10px; padding: 5px 10px; background: #2196F3; border: none; color: white; border-radius: 5px; cursor: pointer;">Testen</button>
+            <button onclick="scanAllPages()"
+                style="margin-left: 10px; padding: 5px 10px; background: #4CAF50; border: none; color: white; border-radius: 5px; cursor: pointer;">Alle
+                Seiten scannen</button>
+        </div>
+    </div>
+
+    <!-- OCR Results Modal -->
+    <div id="ocr-results-modal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 2100; align-items: center; justify-content: center;">
+        <div
+            style="background: #25232a; padding: 24px; border-radius: 16px; width: 80%; max-width: 600px; max-height: 80vh; display: flex; flex-direction: column;">
+            <h2 style="margin-top: 0; color: #E6E1E5;">Erkannte Stimmen</h2>
+            <div id="ocr-results-list"
+                style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                <!-- Results go here -->
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button onclick="document.getElementById('ocr-results-modal').style.display='none'"
+                    style="padding: 10px 20px; background: transparent; color: #D32F2F; border: 1px solid #D32F2F; border-radius: 20px; cursor: pointer;">Abbrechen</button>
+                <button onclick="saveOCRResults()"
+                    style="padding: 10px 20px; background: #D32F2F; color: white; border: none; border-radius: 20px; cursor: pointer;">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 3000; align-items: center; justify-content: center; flex-direction: column; color: white;">
+        <div class="spinner"
+            style="border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid #fff; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite;">
+        </div>
+        <div style="margin-top: 20px; font-size: 18px;">Verarbeite...</div>
+        <style>
+            @keyframes spin {
+                0% {
+                    transform: rotate(0deg);
+                }
+
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </div>
+
     <script>
         let isDrawingMode = false; // Added this line
         const url = '/pdf/{{ song.file_path }}';
