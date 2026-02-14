@@ -2,8 +2,10 @@
 # Raspberry Pi Setup Script for Music Sheet Reader - v5 (Desktop Icon Fix)
 # Run this on your Pi: bash setup_pi.sh
 
+REPO_URL="https://github.com/OrchestraPad/OrchestraPad.git"
+
 echo "================================================"
-echo "   Music Sheet Reader - Raspberry Pi Setup"
+echo "   OrchestraPad - Raspberry Pi Setup"
 echo "================================================"
 
 # --- 1. System Check ---
@@ -44,7 +46,7 @@ echo "[4/4] Konfiguriere Autostart & Desktop-Icon..."
 # Create the .desktop content
 DESKTOP_CONTENT="[Desktop Entry]
 Type=Application
-Name=Notenmappe
+Name=OrchestraPad
 Icon=video-display
 Exec=bash -c \"cd $APP_DIR && ./venv/bin/python3 app.py & sleep 8 && $BROWSER_CMD --kiosk --incognito http://localhost:5000\"
 Terminal=false"
@@ -52,17 +54,17 @@ Terminal=false"
 # 1. Autostart
 AUTOSTART_DIR="$HOME/.config/autostart"
 mkdir -p "$AUTOSTART_DIR"
-echo "$DESKTOP_CONTENT" > "$AUTOSTART_DIR/notenmappe.desktop"
+echo "$DESKTOP_CONTENT" > "$AUTOSTART_DIR/orchestrapad.desktop"
 
 # 2. Desktop Shortcut
-DESKTOP_PATH="$HOME/Desktop/Notenmappe.desktop"
+DESKTOP_PATH="$HOME/Desktop/OrchestraPad.desktop"
 echo "$DESKTOP_CONTENT" > "$DESKTOP_PATH"
 chmod +x "$DESKTOP_PATH"
 
 echo "================================================"
 echo "   FERTIG!"
 echo "================================================"
-echo "1. Es liegt nun ein Icon 'Notenmappe' auf deinem Desktop."
+echo "1. Es liegt nun ein Icon 'OrchestraPad' auf deinem Desktop."
 echo "2. Doppelklick darauf startet den Server und den Browser."
 echo "3. Falls das OS fragt: Wähle 'Execute' (Ausführen)."
 echo ""

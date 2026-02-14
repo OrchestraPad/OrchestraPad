@@ -1,9 +1,9 @@
 #!/bin/bash
-# Update Script for Notenmappe
+# Update Script for OrchestraPad
 # Usage: bash update.sh
 
 echo "================================================"
-echo "   Notenmappe - Program-Update"
+echo "   OrchestraPad - Update Skript"
 echo "================================================"
 
 APP_DIR=$(pwd)

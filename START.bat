@@ -1,8 +1,8 @@
 @echo off
 setlocal
-title Notenmappe Starter
+title OrchestraPad Starter
 echo ============================================
-echo   Notenmappe - Automatischer Starter
+echo   OrchestraPad - Automatischer Starter
 echo ============================================
 echo.
 
@@ -38,7 +38,7 @@ if %errorlevel% neq 0 (
 )
 
 :: 3. Start Application
-echo [3/3] Starte Notenmappe...
+echo [3/3] Starte OrchestraPad...
 echo.
 echo     Info: Ein Browserfenster wird gleich automatisch geoeffnet.
 echo     Hinweis: Dieses schwarze Fenster muss offen bleiben!

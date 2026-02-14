@@ -1,6 +1,6 @@
-# Digitale Notenmappe
+# OrchestraPad
 
-Dieses Programm ist ein PDF-Viewer für Musiker.
+Dieses Programm ist ein PDF-Viewer für Musiker namens **OrchestraPad**.
 
 ## So startest du das Programm:
 

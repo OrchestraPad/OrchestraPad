@@ -1,6 +1,12 @@
-# Versionsverlauf - Notenmappe
+# Versionsverlauf - OrchestraPad
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
+
+## [1.1.0] - 2026-02-14
+### Hinzugefügt
+- **Rebranding**: Programmname von "Notenmappe" zu "**OrchestraPad**" geändert.
+- **Ein-Klick-Update**: Updates können nun direkt in der App per Klick gestartet werden.
+- **GitHub Integration**: Das Projekt ist nun mit GitHub verknüpft für einfache Updates am Pi.
 
 ## [1.0.0] - 2026-02-14
 ### Hinzugefügt
