@@ -49,14 +49,20 @@ fi
 echo "[3/3] Aktualisiere Abhängigkeiten (Python Packages)..."
 if [ -d "venv" ]; then
     source venv/bin/activate
+    pip install --upgrade pip setuptools wheel
     pip install -r requirements.txt
     
     # 4. Database Migration
     echo "[4/4] Prüfe Datenbank-Struktur (Migration)..."
     python migrate_db.py
 else
-    echo "FEHLER: venv nicht gefunden. Bitte setup_pi.sh erneut ausführen."
-    exit 1
+    # System-wide install (Raspberry Pi default)
+    pip3 install --upgrade pip setuptools wheel --break-system-packages
+    pip3 install -r requirements.txt --break-system-packages
+    
+    # 4. Database Migration
+    echo "[4/4] Prüfe Datenbank-Struktur (Migration)..."
+    python migrate_db.py
 fi
 
 echo "================================================"

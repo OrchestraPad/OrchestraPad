@@ -29,16 +29,22 @@ git fetch --all
 git reset --hard origin/main
 
 echo "Step 3: Checking templates..."
-if grep -q "onclick=\"deleteSong" templates/index.html; then
-    echo "✓ Delete button code found in index.html"
+if grep -q "delete-button" "templates/index.html"; then
+   echo "✓ Delete button code found in index.html"
 else
-    echo "✗ Delete button code NOT found - something is wrong!"
+   echo "⚠ Warning: unexpected content in index.html"
 fi
 
 echo "Step 4: Clearing Python cache..."
-find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete
+find . -name "__pycache__" -delete
 
 echo "Step 5: Restarting service..."
+# Re-install dependencies with updated tools
+pip3 install --upgrade pip setuptools wheel --break-system-packages
+pip3 install -r requirements.txt --break-system-packages
+
+sudo systemctl restart orchestrapad
 sudo systemctl start orchestrapad
 
 echo ""
