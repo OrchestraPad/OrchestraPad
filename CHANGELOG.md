@@ -2,6 +2,12 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.4] - 2026-02-14
+### Behoben
+- **Autostart-Diagnose**: Ein Log-File (`autostart.log`) wird nun erstellt, um Startprobleme auf dem Pi zu analysieren.
+- **Kompatibilität**: Autostart-Befehl für verschiedene Raspberry Pi OS Versionen optimiert.
+- **Wartezeit**: Erhöhung der Startverzögerung auf 15 Sekunden für langsamere SD-Karten.
+
 ## [1.1.3] - 2026-02-14
 ### Hinzugefügt
 - **Systemsteuerung**: Neue Buttons in der Sidebar zum Beenden des Programms oder zum Herunterfahren des Raspberry Pi.
