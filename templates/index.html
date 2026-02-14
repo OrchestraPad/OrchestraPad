@@ -674,20 +674,25 @@
             allSetlists.forEach(list => {
                 const item = document.createElement('button');
                 item.className = 'setlist-option-item';
+                // Robust styling to ensure it looks and feels like a button
                 item.style.width = '100%';
                 item.style.textAlign = 'left';
-                item.style.background = 'transparent';
-                item.style.border = 'none';
+                item.style.background = 'var(--md-sys-color-surface-variant)';
+                item.style.border = '1px solid var(--md-sys-color-outline)';
                 item.style.color = 'var(--md-sys-color-on-surface)';
                 item.style.cursor = 'pointer';
                 item.style.fontSize = '16px';
+                item.style.padding = '12px 16px';
+                item.style.marginBottom = '8px';
+                item.style.borderRadius = '8px';
                 item.innerText = list.name;
 
-                // Use direct onclick which is often more reliable on older browsers/touch
-                item.onclick = function (e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    console.log('Adding to setlist:', list.id, songId);
+                // Visual feedback on touch/hover
+                item.onmouseover = () => item.style.background = 'var(--md-sys-color-secondary-container)';
+                item.onmouseout = () => item.style.background = 'var(--md-sys-color-surface-variant)';
+
+                // Simple onclick that calls the function directly
+                item.onclick = function () {
                     addToSetlist(list.id, songId);
                 };
 

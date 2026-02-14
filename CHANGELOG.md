@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.10] - 2026-02-14
+### Behoben
+- **Mappen-Auswahl**: Einträge im Dialog sind jetzt deutlich als Buttons erkennbar (mit Hintergrund und Rahmen) und reagieren zuverlässig auf Klicks.
+
 ## [1.2.9] - 2026-02-14
 ### Behoben
 - **Mappen-Auswahl**: Klick-Handler vereinfacht, um Kompatibilitätsprobleme auf dem Raspberry Pi zu beheben.
