@@ -671,6 +671,36 @@
             document.getElementById('add-song-id').value = songId;
             const container = document.getElementById('setlist-options');
             container.innerHTML = '';
+            selectedSetlistId = null; // Reset selection
+
+            // Create "Add" button container if not exists
+            let btnContainer = document.getElementById('setlist-action-container');
+            if (!btnContainer) {
+                btnContainer = document.createElement('div');
+                btnContainer.id = 'setlist-action-container';
+                btnContainer.style.marginTop = '16px';
+                btnContainer.style.display = 'flex';
+                btnContainer.style.justifyContent = 'flex-end';
+                btnContainer.innerHTML = `
+                    <button id="btn-confirm-add" class="btn-fab" disabled style="opacity: 0.5; cursor: not-allowed;">
+                        Hinzufügen
+                    </button>
+                `;
+                document.querySelector('#setlist-modal .modal-content').appendChild(btnContainer);
+            }
+
+            // Reset button state
+            const confirmBtn = document.getElementById('btn-confirm-add');
+            confirmBtn.disabled = true;
+            confirmBtn.style.opacity = '0.5';
+            confirmBtn.style.cursor = 'not-allowed';
+
+            confirmBtn.onclick = function () {
+                if (selectedSetlistId) {
+                    addToSetlist(selectedSetlistId, songId);
+                }
+            };
+
             allSetlists.forEach(list => {
                 const item = document.createElement('button');
                 item.className = 'setlist-option-item';
@@ -686,14 +716,28 @@
                 item.style.marginBottom = '8px';
                 item.style.borderRadius = '8px';
                 item.innerText = list.name;
+                item.id = `setlist-item-${list.id}`;
 
-                // Visual feedback on touch/hover
-                item.onmouseover = () => item.style.background = 'var(--md-sys-color-secondary-container)';
-                item.onmouseout = () => item.style.background = 'var(--md-sys-color-surface-variant)';
-
-                // Simple onclick that calls the function directly
+                // Selection logic
                 item.onclick = function () {
-                    addToSetlist(list.id, songId);
+                    // Deselect previous
+                    if (selectedSetlistId) {
+                        const prev = document.getElementById(`setlist-item-${selectedSetlistId}`);
+                        if (prev) {
+                            prev.style.background = 'var(--md-sys-color-surface-variant)';
+                            prev.style.borderColor = 'var(--md-sys-color-outline)';
+                        }
+                    }
+
+                    // Select new
+                    selectedSetlistId = list.id;
+                    item.style.background = 'var(--md-sys-color-primary-container)';
+                    item.style.borderColor = 'var(--md-sys-color-primary)';
+
+                    // Enable button
+                    confirmBtn.disabled = false;
+                    confirmBtn.style.opacity = '1';
+                    confirmBtn.style.cursor = 'pointer';
                 };
 
                 container.appendChild(item);
@@ -701,14 +745,20 @@
             document.getElementById('setlist-modal').style.display = 'flex';
         }
 
-        function closeSetlistModal() { document.getElementById('setlist-modal').style.display = 'none'; }
+        function closeSetlistModal() {
+            document.getElementById('setlist-modal').style.display = 'none';
+            selectedSetlistId = null;
+        }
 
         function addToSetlist(setlistId, songId) {
             fetch('/setlist_entry', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ setlist_id: setlistId, song_id: songId })
-            }).then(() => closeModal());
+            }).then(() => {
+                closeSetlistModal();
+                alert('Zu Mappe hinzugefügt!');
+            });
         }
 
         function removeFromSetlist(e, entryId) {

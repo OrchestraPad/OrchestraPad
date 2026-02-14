@@ -357,24 +357,24 @@ def scan_library():
                     if is_external:
                         # Create a safe filename (remove special chars, keep original name)
                         safe_filename = file.replace(' ', '_')
-                        # If file exists, add number suffix
+                        # Check if file already exists in storage (deduplication)
+                        # We assume if filename matches, it's the same file.
                         target_path = os.path.join(STORAGE_PATH, safe_filename)
-                        counter = 1
-                        name_without_ext = safe_filename[:-4]
-                        while os.path.exists(target_path):
-                            safe_filename = f"{name_without_ext}_{counter}.pdf"
-                            target_path = os.path.join(STORAGE_PATH, safe_filename)
-                            counter += 1
                         
-                        # Copy file to local storage
+                        if os.path.exists(target_path):
+                            # File exists, skip copying and skip adding to DB (avoid duplicates)
+                            # debug_info.append(f"Skipped existing: {file}")
+                            continue
+                            
+                        # If we reach here, it is a new file
                         try:
                             import shutil
                             shutil.copy2(source_path, target_path)
                             db_path = safe_filename
                             copied += 1
-                            debug_info.append(f"Copied: {file} -> {safe_filename}")
+                            # debug_info.append(f"Copied: {file} -> {safe_filename}")
                         except Exception as e:
-                            debug_info.append(f"Error copying {file}: {str(e)}")
+                            # debug_info.append(f"Error copying {file}: {str(e)}")
                             continue
                     else:
                         # For local files, just use relative path
