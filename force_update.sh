@@ -6,7 +6,7 @@ echo "=== OrchestraPad Force Update ==="
 cd ~/Noten
 
 echo "Step 1: Stopping service..."
-sudo systemctl stop orchestrapad
+sudo systemctl stop orchestrapad 2>/dev/null || true
 
 # 3. Install Dependencies
 echo "[3/3] Aktualisiere Abhängigkeiten..."
@@ -62,7 +62,6 @@ else
     # Try systemd just in case
     sudo systemctl restart orchestrapad || echo "Service not found, please reboot."
 fi
-sudo systemctl start orchestrapad
 
 echo ""
 echo "=== Update complete! ==="
