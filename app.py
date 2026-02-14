@@ -600,8 +600,8 @@ def scan_part_region():
     pdf_path = os.path.join(STORAGE_PATH, song.file_path)
     
     try:
-        # Convert specific page to image
-        images = convert_from_path(pdf_path, first_page=page_num+1, last_page=page_num+1)
+        # Convert specific page to image with higher DPI for better OCR
+        images = convert_from_path(pdf_path, first_page=page_num+1, last_page=page_num+1, dpi=400)
         if not images:
             return jsonify({'error': 'Could not convert PDF page'}), 500
             
@@ -618,9 +618,17 @@ def scan_part_region():
         # Crop
         cropped = img.crop((x, y, x+w, y+h))
         
+        # Pre-processing for better OCR
+        # 1. Grayscale
+        gray = cropped.convert('L') 
+        # 2. Thresholding (Binarization) - simple adjustment
+        # Pixels < 128 become 0 (black), others 255 (white)
+        bw = gray.point(lambda x: 0 if x < 140 else 255, '1')
+        
         # Run OCR
         # lang='deu' for German support if installed, else 'eng'
-        text = pytesseract.image_to_string(cropped, lang='deu+eng', config='--psm 6')
+        # --psm 6: Assume a single uniform block of text.
+        text = pytesseract.image_to_string(bw, lang='deu+eng', config='--psm 6')
         
         return jsonify({'status': 'success', 'text': text.strip()})
         
