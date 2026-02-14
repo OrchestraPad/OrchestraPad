@@ -608,12 +608,20 @@ def scan_part_region():
         img = images[0]
         img_w, img_h = img.size
         
-        # Calculate crop coordinates
-        # Assumes box is in percentage (0-100)
-        x = int(box['x'] * img_w / 100)
-        y = int(box['y'] * img_h / 100)
-        w = int(box['w'] * img_w / 100)
-        h = int(box['h'] * img_h / 100)
+        
+        # Calculate crop coordinates with SAFETY PADDING (2%)
+        # User reported offset to the right, so we expand the box slightly
+        pad_percent = 2.0
+        
+        x_pct = max(0, box['x'] - pad_percent)
+        y_pct = max(0, box['y'] - pad_percent)
+        w_pct = min(100, box['w'] + (pad_percent * 2))
+        h_pct = min(100, box['h'] + (pad_percent * 2))
+        
+        x = int(x_pct * img_w / 100)
+        y = int(y_pct * img_h / 100)
+        w = int(w_pct * img_w / 100)
+        h = int(h_pct * img_h / 100)
         
         # Crop
         cropped = img.crop((x, y, x+w, y+h))
