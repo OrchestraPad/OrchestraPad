@@ -982,6 +982,56 @@
             renderPage(currentVirtualIndex);
         });
 
+        // --- Drawing & Annotations ---
+        function toggleDrawingMode() {
+            isDrawingMode = !isDrawingMode;
+            const btn = document.getElementById('btn-draw');
+            const navLeft = document.getElementById('nav-left');
+            const navRight = document.getElementById('nav-right');
+
+            if (isDrawingMode) {
+                if (btn) btn.classList.add('active');
+                drawCanvas.style.pointerEvents = 'auto';
+                if (navLeft) navLeft.style.display = 'none';
+                if (navRight) navRight.style.display = 'none';
+            } else {
+                if (btn) btn.classList.remove('active');
+                drawCanvas.style.pointerEvents = 'none';
+                if (navLeft) navLeft.style.display = 'block';
+                if (navRight) navRight.style.display = 'block';
+                // Save on exit
+                const vPage = virtualPages[currentVirtualIndex];
+                const storageKey = songKey + '_page_' + vPage.pdfPage + '_' + vPage.side;
+                localStorage.setItem(storageKey, drawCanvas.toDataURL());
+            }
+        }
+
+        function loadAnnotations(page, side) {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            const storageKey = songKey + '_page_' + page + '_' + side;
+            const data = localStorage.getItem(storageKey);
+            if (data) {
+                const img = new Image();
+                img.onload = function () { drawCtx.drawImage(img, 0, 0); };
+                img.src = data;
+            }
+        }
+
+        function clearAnnotations() {
+            if (confirm("Alle Zeichnungen auf dieser Seite löschen?")) {
+                drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                const vPage = virtualPages[currentVirtualIndex];
+                const storageKey = songKey + '_page_' + vPage.pdfPage + '_' + vPage.side;
+                localStorage.removeItem(storageKey);
+            }
+        }
+
+        function handleTap(action) {
+            if (isDrawingMode) return;
+            if (action === 'prev') { prevPage(); }
+            else if (action === 'next') { nextPage(); }
+        }
+
         function saveSettingsToServer() {
             const data = {
                 settings: {
