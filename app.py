@@ -638,7 +638,84 @@ def scan_part_region():
         # --psm 6: Assume a single uniform block of text.
         text = pytesseract.image_to_string(bw, lang='deu+eng', config='--psm 6')
         
-        return jsonify({'status': 'success', 'text': text.strip()})
+        # --- SMART OCR POST-PROCESSING ---
+        original_text = text.strip()
+        corrected_text = original_text
+        
+        # Define known instruments (German/English/Italian/French common terms)
+        KNOWN_INSTRUMENTS = [
+            # Woodwinds
+            "Flöte", "Flute", "Flauto", "Piccolo", "Pikkolo", "Oboe", "Englischhorn", "English Horn",
+            "Klarinette", "Clarinet", "Clarinetto", "Bassklarinette", "Bass Clarinet", "Fagott", "Bassoon",
+            "Saxophon", "Saxophone", "Altsaxophon", "Tenorsaxophon", "Baritonsaxophon",
+            # Brass
+            "Horn", "Corno", "Trompete", "Trumpet", "Tromba", "Kornett", "Cornet", "Flügelhorn", "Flugelhorn",
+            "Posaune", "Trombone", "Bassposaune", "Tuba", "Bass", "Euphonium", "Bariton",
+            # Strings
+            "Violine", "Violin", "Geige", "Viola", "Bratsche", "Cello", "Violoncello", "Kontrabass", "Double Bass",
+            # Percussion
+            "Pauken", "Timpani", "Schlagzeug", "Percussion", "Drums", "Glockenspiel", "Xylophon", "Vibraphon",
+            # Keyboards/Other
+            "Klavier", "Piano", "Harfe", "Harp", "Gitarre", "Guitar", "Direktion", "Conductor", "Score", "Partitur"
+        ]
+        
+        # 1. Clean up text (remove special chars, excess whitespace)
+        import re
+        # Remove non-alphanumeric except spaces, dots, dashes
+        clean_text = re.sub(r'[^\w\s\.\-]', '', original_text)
+        
+        # 2. Try to find instrument name in text
+        import difflib
+        
+        found_matches = []
+        
+        # Check line by line (or word chunks)
+        lines = clean_text.split('\n')
+        final_instrument = ""
+        final_number = ""
+        
+        best_ratio = 0.0
+        best_match = ""
+        
+        for line in lines:
+            words = line.split()
+            # Check single words and pairs (e.g. "Tenor Sax")
+            candidates = words + [' '.join(words[i:i+2]) for i in range(len(words)-1)]
+            
+            for word in candidates:
+                # Direct fuzzy match against known list
+                matches = difflib.get_close_matches(word, KNOWN_INSTRUMENTS, n=1, cutoff=0.55)
+                if matches:
+                    # Calculate ratio to find the "best" match
+                    ratio = difflib.SequenceMatcher(None, word.lower(), matches[0].lower()).ratio()
+                    if ratio > best_ratio:
+                        best_ratio = ratio
+                        best_match = matches[0]
+                        
+            # Check for numbers (1, 2, 3, I, II, III, 1st, 2nd)
+            # Simple regex for numbers
+            num_match = re.search(r'(\d+|I{1,3})', line)
+            if num_match:
+                final_number = num_match.group(1)
+
+        if best_match:
+            # Reconstruct corrected name
+            corrected_text = best_match
+            if final_number:
+                corrected_text += " " + final_number
+            
+            # Logic for generic matches (e.g. "arinete" -> "Clarinet")
+            # The fuzzy matcher handles this well usually.
+            
+            return jsonify({
+                'status': 'success', 
+                'text': corrected_text, 
+                'original': original_text,
+                'confidence': best_ratio
+            })
+            
+        # Fallback if no specific instrument found: return raw text but structured
+        return jsonify({'status': 'success', 'text': original_text})
         
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
