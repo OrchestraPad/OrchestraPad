@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.8] - 2026-02-14
+### Behoben
+- **Mappen-Auswahl**: Klickbarkeit im "Hinzufügen"-Dialog durch Verwendung von echten Buttons statt Divs verbessert.
+
 ## [1.2.7] - 2026-02-14
 ### Behoben
 - **Scan Info**: Debug-Informationen beim Scannen entfernt.

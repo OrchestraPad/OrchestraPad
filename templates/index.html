@@ -672,14 +672,25 @@
             const container = document.getElementById('setlist-options');
             container.innerHTML = '';
             allSetlists.forEach(list => {
-                const item = document.createElement('div');
+                const item = document.createElement('button');
                 item.className = 'setlist-option-item';
+                item.style.width = '100%';
+                item.style.textAlign = 'left';
+                item.style.background = 'transparent';
+                item.style.border = 'none';
+                item.style.color = 'var(--md-sys-color-on-surface)';
+                item.style.cursor = 'pointer';
+                item.style.fontSize = '16px';
                 item.innerText = list.name;
-                // Use addEventListener or direct onclick assignment on the element
-                item.onclick = function (evt) {
-                    evt.stopPropagation();
+
+                // Add event listener directly
+                item.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Adding to setlist:', list.id, songId);
                     addToSetlist(list.id, songId);
-                };
+                });
+
                 container.appendChild(item);
             });
             document.getElementById('setlist-modal').style.display = 'flex';
