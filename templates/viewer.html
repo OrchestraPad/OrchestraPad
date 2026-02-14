@@ -472,6 +472,7 @@
 
     <script>
         let isDrawingMode = false; // Added this line
+        const songId = {{ song.id }}; // Global ID
         const url = '/pdf/{{ song.file_path }}';
         const songKey = 'song_settings_{{ song.id }}';
         const padding = 20; // 0.5cm approx padding
@@ -1238,7 +1239,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    song_id: song.id,
+                    song_id: songId,
                     page: virtualPages[currentVirtualIndex].pdfPage,
                     box: ocrBox
                 })
@@ -1262,7 +1263,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    song_id: song.id,
+                    song_id: songId,
                     box: ocrBox
                 })
             })
@@ -1313,7 +1314,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    song_id: song.id,
+                    song_id: songId,
                     parts: mapping
                 })
             })
