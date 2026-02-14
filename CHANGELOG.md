@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.3.0] - 2026-02-14
+### Neu
+- **Smart OCR (Stimmen-Trainer)**: Man kann jetzt im Viewer oben einen Bereich markieren, wo der Instrumentenname steht. Das System scannt dann **nur** diesen Bereich auf allen Seiten. Das ist viel schneller und genauer als der Volltext-Scan.
+- **Backend**: Neue Schnittstellen für Bildverarbeitung und Texterkennung (`pdf2image`, `tesseract`) integriert.
+
 ## [1.2.12] - 2026-02-14
 ### Behoben
 - **Technischer Fehler**: Fehlende Schnittstelle für das Hinzufügen von Stücken zu Mappen ergänzt. Jetzt werden die Stücke auch tatsächlich gespeichert.

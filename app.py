@@ -585,5 +585,99 @@ def system_control():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+@app.route('/scan_part_region', methods=['POST'])
+def scan_part_region():
+    import pytesseract
+    from pdf2image import convert_from_path
+    from PIL import Image
+    
+    data = request.json
+    song_id = data.get('song_id')
+    page_num = data.get('page', 1) - 1 # 0-indexed
+    box = data.get('box') # {x, y, w, h} in percent (0-100) or pixels
+    
+    song = Song.query.get_or_404(song_id)
+    pdf_path = os.path.join(STORAGE_PATH, song.file_path)
+    
+    try:
+        # Convert specific page to image
+        images = convert_from_path(pdf_path, first_page=page_num+1, last_page=page_num+1)
+        if not images:
+            return jsonify({'error': 'Could not convert PDF page'}), 500
+            
+        img = images[0]
+        img_w, img_h = img.size
+        
+        # Calculate crop coordinates
+        # Assumes box is in percentage (0-100)
+        x = int(box['x'] * img_w / 100)
+        y = int(box['y'] * img_h / 100)
+        w = int(box['w'] * img_w / 100)
+        h = int(box['h'] * img_h / 100)
+        
+        # Crop
+        cropped = img.crop((x, y, x+w, y+h))
+        
+        # Run OCR
+        # lang='deu' for German support if installed, else 'eng'
+        text = pytesseract.image_to_string(cropped, lang='deu+eng', config='--psm 6')
+        
+        return jsonify({'status': 'success', 'text': text.strip()})
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/scan_all_pages_region', methods=['POST'])
+def scan_all_pages_region():
+    import pytesseract
+    from pdf2image import convert_from_path
+    
+    data = request.json
+    song_id = data.get('song_id')
+    box = data.get('box')
+    
+    song = Song.query.get_or_404(song_id)
+    pdf_path = os.path.join(STORAGE_PATH, song.file_path)
+    
+    results = {}
+    
+    try:
+        # Convert all pages (memory intensive, maybe do in chunks?)
+        # For Pi, we should probably do one by one or small chunks
+        # But pdf2image allows iterating?
+        # Let's try converting all for now, assuming PDF size isn't massive
+        images = convert_from_path(pdf_path)
+        
+        for i, img in enumerate(images):
+            img_w, img_h = img.size
+            x = int(box['x'] * img_w / 100)
+            y = int(box['y'] * img_h / 100)
+            w = int(box['w'] * img_w / 100)
+            h = int(box['h'] * img_h / 100)
+            
+            cropped = img.crop((x, y, x+w, y+h))
+            text = pytesseract.image_to_string(cropped, lang='deu+eng', config='--psm 6').strip()
+            
+            # Simple heuristic: if empty, maybe it's same as previous page?
+            # Or just return raw text
+            results[i+1] = text
+            
+        return jsonify({'status': 'success', 'results': results})
+        
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+@app.route('/save_part_mapping', methods=['POST'])
+def save_part_mapping():
+    data = request.json
+    song_id = data.get('song_id')
+    parts = data.get('parts') # { "Flute 1": [1, 2], "Flute 2": [3, 4] }
+    
+    song = Song.query.get_or_404(song_id)
+    song.detected_parts = parts
+    db.session.commit()
+    
+    return jsonify({'status': 'success'})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
