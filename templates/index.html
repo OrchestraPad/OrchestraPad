@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notenmappe - Bibliothek</title>
+    <style>
+        :root {
+            /* Vereinsfarben - Black & Red */
+            --md-sys-color-primary: #D32F2F;
+            /* Vibrant Red */
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #801313;
+            /* Dark Red */
+            --md-sys-color-on-primary-container: #FFDAD9;
+            --md-sys-color-secondary: #775656;
+            --md-sys-color-surface: #000000;
+            /* Deep Black */
+            --md-sys-color-on-surface: #E6E1E5;
+            --md-sys-color-surface-variant: #25232a;
+            /* Dark Grey Surface */
+            --md-sys-color-on-surface-variant: #CAC4D0;
+            --md-sys-color-outline: #938F99;
+            --md-sys-color-error: #F2B8B5;
+            --md-sys-typescale-h1-font: system-ui, -apple-system, sans-serif;
+            --md-sys-shape-corner-extra-large: 28px;
+            --md-sys-shape-corner-large: 16px;
+            --md-sys-shape-corner-medium: 12px;
+        }
+
+        body {
+            font-family: var(--md-sys-typescale-h1-font);
+            margin: 0;
+            padding: 0;
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 300px;
+            background: #111;
+            /* Consistent Dark Sidebar */
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            border-right: 1px solid var(--md-sys-color-outline);
+        }
+
+        .sidebar h2 {
+            font-size: 14px;
+            color: var(--md-sys-color-on-surface-variant);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin: 24px 12px 12px;
+        }
+
+        .setlist-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--md-sys-color-on-surface-variant);
+        }
+
+        .setlist-item:active {
+            background: rgba(211, 47, 47, 0.2);
+            color: var(--md-sys-color-primary);
+        }
+
+        .setlist-item.active {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 500;
+        }
+
+        .setlist-item .icon-box {
+            margin-right: 12px;
+            display: flex;
+        }
+
+        /* --- Main Content --- */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: var(--md-sys-color-surface);
+            overflow-y: auto;
+        }
+
+        .top-bar {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--md-sys-color-surface);
+            z-index: 10;
+            border-bottom: 1px solid #333;
+        }
+
+        .top-bar h1 {
+            font-size: 28px;
+            margin: 0;
+            font-weight: 400;
+            color: var(--md-sys-color-primary);
+        }
+
+        .actions-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        /* --- Grid & Cards --- */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 24px;
+            padding: 24px;
+        }
+
+        .card {
+            background: var(--md-sys-color-surface-variant);
+            border-radius: var(--md-sys-shape-corner-large);
+            padding: 24px;
+            position: relative;
+            cursor: pointer;
+            border: 2px solid #333;
+        }
+
+        .card:active {
+            border-color: var(--md-sys-color-primary);
+            background: #333;
+        }
+
+        .card-icon {
+            width: 48px;
+            height: 48px;
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-radius: var(--md-sys-shape-corner-medium);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin: 0 0 4px 0;
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--md-sys-color-on-surface-variant);
+            font-size: 14px;
+        }
+
+        .card-actions {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            display: flex;
+            gap: 8px;
+            opacity: 1;
+            /* Always visible for touch */
+        }
+
+        .icon-btn {
+            width: 48px;
+            /* Larger target for touch */
+            height: 48px;
+            border-radius: 24px;
+            border: none;
+            background: rgba(255, 255, 255, 0.05);
+            /* Subtle contrast */
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: var(--md-sys-color-on-surface-variant);
+            transition: background 0.2s;
+        }
+
+        .icon-btn:active {
+            background: var(--md-sys-color-primary);
+            color: white;
+        }
+
+        /* --- Buttons --- */
+        .btn-fab {
+            background: var(--md-sys-color-primary);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: var(--md-sys-shape-corner-large);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+        }
+
+        .btn-fab:active {
+            background: var(--md-sys-color-primary-container);
+            transform: scale(0.98);
+        }
+
+        .input-pill {
+            background: var(--md-sys-color-surface);
+            border: 1px solid var(--md-sys-color-outline);
+            border-radius: var(--md-sys-shape-corner-medium);
+            padding: 8px 16px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .input-pill:focus {
+            border-color: var(--md-sys-color-primary);
+            border-width: 2px;
+        }
+
+        /* --- Modals --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: var(--md-sys-color-surface);
+            padding: 24px;
+            border-radius: var(--md-sys-shape-corner-extra-large);
+            width: 90%;
+            max-width: 480px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            font-weight: 400;
+        }
+
+        .form-field {
+            margin-bottom: 20px;
+        }
+
+        .form-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--md-sys-color-primary);
+            font-weight: 500;
+        }
+
+        .modal-btns {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- SVG Library -->
+    <svg style="display: none;">
+        <symbol id="icon-library" viewBox="0 0 24 24">
+            <path d="M4 18h16V6H4v12zm9-10h5v8h-5V8zm-7 0h5v3H6V8zm0 5h5v3H6v-3z" fill="currentColor" />
+        </symbol>
+        <symbol id="icon-folder" viewBox="0 0 24 24">
+            <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-note" viewBox="0 0 24 24">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-scan" viewBox="0 0 24 24">
+            <path
+                d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-edit" viewBox="0 0 24 24">
+            <path
+                d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-delete" viewBox="0 0 24 24">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-add" viewBox="0 0 24 24">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="currentColor" />
+        </symbol>
+        <symbol id="icon-add-to-list" viewBox="0 0 24 24">
+            <path
+                d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
+                fill="currentColor" />
+        </symbol>
+    </svg>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div style="display: flex; align-items: center; margin-bottom: 24px; padding: 0 12px;">
+                <svg width="24" height="24" style="color: var(--md-sys-color-primary); margin-right: 12px;">
+                    <use href="#icon-library" />
+                </svg>
+                <h3 style="margin: 0; font-weight: 500;">Notenmappe</h3>
+            </div>
+
+            <div class="setlist-item active" id="btn-all-songs" onclick="showAllSongs()">
+                <div class="icon-box">
+                    <svg width="20" height="20">
+                        <use href="#icon-note" />
+                    </svg>
+                </div>
+                Alle Noten
+            </div>
+
+            <h2>Konzertmappen</h2>
+            <div id="setlist-list" style="flex: 1; overflow-y: auto;">
+                <!-- Setlists go here -->
+            </div>
+
+            <!-- Version Info -->
+            <div
+                style="padding: 16px; border-top: 1px solid #333; font-size: 12px; color: var(--md-sys-color-on-surface-variant); display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span>Version {{ app_version }}</span>
+                    <a href="#" onclick="startUpdate()"
+                        style="color: var(--md-sys-color-primary); text-decoration: none; font-weight: 500;">Update</a>
+                </div>
+                <a href="#" onclick="showChangelog()"
+                    style="color: inherit; text-decoration: underline; opacity: 0.7;">Versionsverlauf anzeigen</a>
+            </div>
+
+            <div
+                style="margin-top: auto; padding: 12px; background: rgba(0,0,0,0.03); border-radius: var(--md-sys-shape-corner-large);">
+                <input type="text" id="new-setlist-name" placeholder="Neue Mappe..." class="input-pill">
+                <button class="btn-fab" onclick="createSetlist()"
+                    style="width: 100%; margin-top: 12px; justify-content: center; padding: 12px;">
+                    <svg width="20" height="20">
+                        <use href="#icon-add" />
+                    </svg>
+                    Erstellen
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="top-bar">
+                <h1 id="view-title">Alle Noten</h1>
+                <div class="actions-row">
+                    <select id="sort-select" onchange="sortLibrary()"
+                        style="padding: 10px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline); background: white;">
+                        <option value="title">Sortierung: Titel</option>
+                        <option value="composer">Sortierung: Komponist</option>
+                    </select>
+                    <button class="btn-fab" onclick="rescan()">
+                        <svg width="20" height="20">
+                            <use href="#icon-scan" />
+                        </svg>
+                        Aktualisieren
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid" id="song-grid">
+                {% for song in songs %}
+                <div class="card" data-title="{{ song.title }}" data-composer="{{ song.composer or '' }}"
+                    data-songid="{{ song.id }}">
+                    <div class="card-actions">
+                        <button class="icon-btn" title="Zu Mappe hinzufügen"
+                            onclick="openAddToSetlistModal(event, {{ song.id }})">
+                            <svg width="20" height="20">
+                                <use href="#icon-add-to-list" />
+                            </svg>
+                        </button>
+                        <button class="icon-btn" title="Bearbeiten"
+                            onclick="openEditModal(event, {{ song.id }}, '{{ song.title }}', '{{ song.composer or '' }}', '{{ song.arranger or '' }}', '{{ song.genre or '' }}')">
+                            <svg width="20" height="20">
+                                <use href="#icon-edit" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <a href="/view/{{ song.id }}" style="text-decoration: none; color: inherit; display: block;">
+                        <div class="card-icon">
+                            <svg width="28" height="28">
+                                <use href="#icon-note" />
+                            </svg>
+                        </div>
+                        <h3>{{ song.title }}</h3>
+                        <p>{{ song.composer or 'Unbekannter Komponist' }}</p>
+                        {% if song.arranger %}
+                        <p style="opacity: 0.7; font-size: 13px; margin-top: 4px;">Arr: {{ song.arranger }}</p>
+                        {% endif %}
+                    </a>
+                </div>
+                {% else %}
+                <div
+                    style="grid-column: 1/-1; text-align: center; padding: 60px; color: var(--md-sys-color-on-surface-variant);">
+                    <svg width="64" height="64" style="opacity: 0.3; margin-bottom: 16px;">
+                        <use href="#icon-folder" />
+                    </svg>
+                    <p>Noch keine Noten gefunden. Bitte USB-Stick anschließen und scannen.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h2>Stück bearbeiten</h2>
+            <input type="hidden" id="edit-id">
+            <div class="form-field">
+                <label>Titel</label>
+                <input type="text" id="edit-title" class="input-pill">
+            </div>
+            <div class="form-field">
+                <label>Komponist</label>
+                <input type="text" id="edit-composer" class="input-pill">
+            </div>
+            <div class="form-field">
+                <label>Arrangeur</label>
+                <input type="text" id="edit-arranger" class="input-pill">
+            </div>
+            <div class="form-field">
+                <label>Genre / Schlagworte</label>
+                <input type="text" id="edit-genre" class="input-pill">
+            </div>
+            <div class="modal-btns">
+                <button class="btn-fab" onclick="closeModal()"
+                    style="background: transparent; box-shadow: none; color: var(--md-sys-color-primary);">Abbrechen</button>
+                <button class="btn-fab" onclick="saveSong()">Speichern</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="setlist-modal" class="modal">
+        <div class="modal-content">
+            <h2>Zu Mappe hinzufügen</h2>
+            <input type="hidden" id="add-song-id">
+            <div id="setlist-options" style="max-height: 300px; overflow-y: auto; margin: 16px 0;">
+                <!-- Dynamically filled -->
+            </div>
+            <div class="modal-btns">
+                <button class="btn-fab" onclick="closeSetlistModal()"
+                    style="background: transparent; box-shadow: none; color: var(--md-sys-color-primary);">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="changelog-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Versionsverlauf</h2>
+            <div id="changelog-content"
+                style="background: #111; padding: 20px; border-radius: 12px; max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace; font-size: 14px; border: 1px solid #333; margin: 16px 0;">
+                Wird geladen...
+            </div>
+            <div class="modal-btns">
+                <button class="btn-fab" onclick="closeChangelogModal()"
+                    style="background: var(--md-sys-color-primary); color: white;">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="update-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Programm-Update</h2>
+            <div id="update-status" style="margin-bottom: 12px; font-weight: 600; color: var(--md-sys-color-primary);">
+                Update wird ausgeführt...</div>
+            <div id="update-log"
+                style="background: #000; color: #0f0; padding: 16px; border-radius: 8px; height: 300px; overflow-y: auto; font-family: monospace; font-size: 13px; border: 1px solid #333;">
+                Initialisierung...
+            </div>
+            <div id="update-footer" style="margin-top: 16px; display: none;">
+                <button class="btn-fab" onclick="location.reload()" style="width: 100%;">Programm neu starten</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allSetlists = [];
+        let currentSetlistId = null;
+
+        function rescan() {
+            fetch('/scan').then(r => r.json()).then(d => {
+                alert(d.added + ' neue Stücke gefunden!');
+                location.reload();
+            });
+        }
+
+        function loadSetlists() {
+            fetch('/setlists').then(r => r.json()).then(data => {
+                allSetlists = data;
+                renderSetlistSidebar();
+            });
+        }
+
+        function renderSetlistSidebar() {
+            const container = document.getElementById('setlist-list');
+            container.innerHTML = '';
+            allSetlists.forEach(list => {
+                const div = document.createElement('div');
+                div.className = 'setlist-item' + (currentSetlistId === list.id ? ' active' : '');
+
+                div.innerHTML = `
+                    <div class="icon-box"><svg width="20" height="20"><use href="#icon-folder"/></svg></div>
+                    <span style="flex:1" onclick="loadSetlistSongs(${list.id}, '${list.name.replace(/'/g, "\\'")}')">${list.name}</span>
+                    <button class="icon-btn" style="width:32px; height:32px" onclick="deleteSetlist(event, ${list.id}, '${list.name.replace(/'/g, "\\'")}')">
+                        <svg width="18" height="18"><use href="#icon-delete"/></svg>
+                    </button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function deleteSetlist(e, id, name) {
+            e.stopPropagation();
+            if (confirm(`Mappe "${name}" wirklich löschen?`)) {
+                fetch('/setlist/' + id, { method: 'DELETE' }).then(() => {
+                    if (currentSetlistId === id) showAllSongs();
+                    loadSetlists();
+                });
+            }
+        }
+
+        function createSetlist() {
+            const name = document.getElementById('new-setlist-name').value;
+            if (!name) return;
+            fetch('/setlists', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: name })
+            }).then(r => r.json()).then(newList => {
+                loadSetlists();
+                document.getElementById('new-setlist-name').value = '';
+            });
+        }
+
+        function loadSetlistSongs(id, name) {
+            currentSetlistId = id;
+            document.getElementById('view-title').innerText = name;
+            document.getElementById('btn-all-songs').classList.remove('active');
+            renderSetlistSidebar();
+
+            fetch('/setlist/' + id).then(r => r.json()).then(data => {
+                const grid = document.getElementById('song-grid');
+                grid.innerHTML = '';
+                data.songs.forEach(song => {
+                    grid.appendChild(createCardElement(song));
+                });
+            });
+        }
+
+        function showAllSongs() {
+            location.reload();
+        }
+
+        function createCardElement(song) {
+            const div = document.createElement('div');
+            div.className = 'card';
+            const title = (song.title || '').replace(/'/g, "\\'");
+            const composer = (song.composer || '').replace(/'/g, "\\'");
+            const arranger = (song.arranger || '').replace(/'/g, "\\'");
+            const genre = (song.genre || '').replace(/'/g, "\\'");
+
+            let headerActions = `
+                <button class="icon-btn" title="Zu Mappe hinzufügen" onclick="openAddToSetlistModal(event, ${song.id})">
+                    <svg width="20" height="20"><use href="#icon-add-to-list" /></svg>
+                </button>
+                <button class="icon-btn" title="Bearbeiten" onclick="openEditModal(event, ${song.id}, '${title}', '${composer}', '${arranger}', '${genre}')">
+                    <svg width="20" height="20"><use href="#icon-edit" /></svg>
+                </button>
+            `;
+
+            if (song.entry_id) {
+                headerActions = `
+                    <button class="icon-btn" style="color: var(--md-sys-color-error);" onclick="removeFromSetlist(event, ${song.entry_id})">
+                        <svg width="20" height="20"><use href="#icon-delete" /></svg>
+                    </button>
+                `;
+            }
+
+            div.innerHTML = `
+                <div class="card-actions">${headerActions}</div>
+                <a href="/view/${song.id}" style="text-decoration: none; color: inherit; display: block;">
+                    <div class="card-icon"><svg width="28" height="28"><use href="#icon-note"/></svg></div>
+                    <h3>${song.title}</h3>
+                    <p>${song.composer || 'Unbekannter Komponist'}</p>
+                    ${song.arranger ? `<p style="opacity: 0.7; font-size: 13px; margin-top: 4px;">Arr: ${song.arranger}</p>` : ''}
+                </a>
+            `;
+            return div;
+        }
+
+        function openAddToSetlistModal(e, songId) {
+            e.stopPropagation();
+            document.getElementById('add-song-id').value = songId;
+            const container = document.getElementById('setlist-options');
+            container.innerHTML = '';
+            allSetlists.forEach(list => {
+                const item = document.createElement('div');
+                item.className = 'setlist-item';
+                item.style.background = 'var(--md-sys-color-primary-container)';
+                item.style.marginBottom = '8px';
+                item.innerHTML = `
+                    <svg width="20" height="20" style="margin-right:12px"><use href="#icon-add"/></svg>
+                    <span>Zu "${list.name}"</span>
+                `;
+                item.onclick = () => addToSetlist(list.id, songId);
+                container.appendChild(item);
+            });
+            document.getElementById('setlist-modal').style.display = 'flex';
+        }
+
+        function closeSetlistModal() { document.getElementById('setlist-modal').style.display = 'none'; }
+
+        function addToSetlist(listId, songId) {
+            fetch('/setlist/' + listId, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ song_id: songId })
+            }).then(() => {
+                closeSetlistModal();
+                loadSetlists();
+            });
+        }
+
+        function removeFromSetlist(e, entryId) {
+            e.stopPropagation();
+            if (!confirm('Aus der Mappe entfernen?')) return;
+            fetch('/setlist_entry/' + entryId, { method: 'DELETE' }).then(() => {
+                if (currentSetlistId) loadSetlistSongs(currentSetlistId, document.getElementById('view-title').innerText);
+            });
+        }
+
+        function openEditModal(e, id, title, composer, arranger, genre) {
+            e.stopPropagation();
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-title').value = title;
+            document.getElementById('edit-composer').value = composer;
+            document.getElementById('edit-arranger').value = arranger;
+            document.getElementById('edit-genre').value = genre;
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function closeModal() { document.getElementById('edit-modal').style.display = 'none'; }
+
+        function saveSong() {
+            const id = document.getElementById('edit-id').value;
+            const data = {
+                title: document.getElementById('edit-title').value,
+                composer: document.getElementById('edit-composer').value,
+                arranger: document.getElementById('edit-arranger').value,
+                genre: document.getElementById('edit-genre').value
+            };
+            fetch('/edit_song/' + id, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(() => location.reload());
+        }
+
+        function sortLibrary() {
+            const grid = document.getElementById('song-grid');
+            const cards = Array.from(grid.getElementsByClassName('card'));
+            const criteria = document.getElementById('sort-select').value;
+            cards.sort((a, b) => {
+                const valA = (a.getAttribute('data-' + criteria) || '').toLowerCase();
+                const valB = (b.getAttribute('data-' + criteria) || '').toLowerCase();
+                return valA.localeCompare(valB);
+            });
+            cards.forEach(card => grid.appendChild(card));
+        }
+
+        function showChangelog() {
+            fetch('/changelog')
+                .then(r => r.json())
+                .then(data => {
+                    document.getElementById('changelog-content').innerText = data.content;
+                    document.getElementById('changelog-modal').style.display = 'flex';
+                });
+        }
+
+        function closeChangelogModal() {
+            document.getElementById('changelog-modal').style.display = 'none';
+        }
+
+        function startUpdate() {
+            if (!confirm('Möchtest du das Programm jetzt aktualisieren? Der Pi benötigt eventuell einen Neustart.')) return;
+
+            document.getElementById('update-modal').style.display = 'flex';
+            const logDiv = document.getElementById('update-log');
+            logDiv.innerText = 'Verbindung zum Server wird aufgebaut...\n';
+
+            fetch('/run_update', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    logDiv.innerText += data.output;
+                    if (data.status === 'success') {
+                        document.getElementById('update-status').innerText = 'Update erfolgreich!';
+                        document.getElementById('update-status').style.color = '#4CAF50';
+                    } else {
+                        document.getElementById('update-status').innerText = 'Update fehlgeschlagen.';
+                        document.getElementById('update-status').style.color = '#F44336';
+                    }
+                    document.getElementById('update-footer').style.display = 'block';
+                })
+                .catch(err => {
+                    logDiv.innerText += '\nFEHLER: ' + err;
+                    document.getElementById('update-status').innerText = 'Verbindungsfehler.';
+                    document.getElementById('update-footer').style.display = 'block';
+                });
+        }
+
+        loadSetlists();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ song.title }} - Viewer</title>
+    <style>
+        :root {
+            /* Vereinsfarben - Black & Red */
+            --md-sys-color-primary: #D32F2F;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #801313;
+            --md-sys-color-on-primary-container: #FFDAD9;
+            --md-sys-color-surface: #000000;
+            --md-sys-color-on-surface: #E6E1E5;
+            --md-sys-color-surface-variant: #25232a;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+            --md-sys-color-outline: #938F99;
+            --md-sys-typescale-h1-font: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: var(--md-sys-typescale-h1-font);
+            color: var(--md-sys-color-on-surface);
+        }
+
+        #canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            position: relative;
+            overflow: auto;
+            background: #000;
+        }
+
+        canvas {
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            position: absolute;
+        }
+
+        #draw-canvas {
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        #pdf-canvas {
+            z-index: 1;
+        }
+
+        .nav-overlay {
+            position: fixed;
+            top: 80px;
+            bottom: 0;
+            width: 15%;
+            cursor: pointer;
+            z-index: 10;
+        }
+
+        .nav-left {
+            left: 0;
+        }
+
+        .nav-right {
+            right: 0;
+        }
+
+        /* --- Glassmorphism Toolbar --- */
+        .toolbar {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(17, 17, 17, 0.85);
+            /* Darker for better contrast */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            padding: 10px 20px;
+            border-radius: 40px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            border: 1px solid rgba(255, 0, 0, 0.2);
+            /* Red tint border */
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            min-width: fit-content;
+            white-space: nowrap;
+        }
+
+        .toolbar.visible {
+            display: flex;
+        }
+
+        .toolbar-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 0 12px;
+            color: var(--md-sys-color-on-surface);
+        }
+
+        .icon-btn {
+            width: 52px;
+            /* Larger targets for viewer */
+            height: 52px;
+            border-radius: 26px;
+            border: none;
+            background: transparent;
+            color: var(--md-sys-color-on-surface-variant);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .icon-btn:active {
+            background: rgba(211, 47, 47, 0.3);
+            color: var(--md-sys-color-primary);
+        }
+
+        .icon-btn.active {
+            background: var(--md-sys-color-primary);
+            color: white;
+        }
+
+        .divider {
+            width: 1px;
+            height: 32px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 6px;
+        }
+
+        select,
+        input[type="range"] {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 8px 12px;
+            font-family: inherit;
+            font-size: 16px;
+        }
+
+        /* --- Touch Feedback --- */
+        .touch-feedback {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            width: 25%;
+            background: radial-gradient(circle at center, rgba(211, 47, 47, 0.25) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.2s;
+            pointer-events: none;
+            z-index: 50;
+        }
+
+        .touch-feedback.active {
+            opacity: 1;
+        }
+
+        .feedback-left {
+            left: 0;
+        }
+
+        .feedback-right {
+            right: 0;
+        }
+
+        #ocr-status {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            padding: 20px 40px;
+            border-radius: 32px;
+            z-index: 1000;
+            display: none;
+            font-size: 20px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            border: 1px solid var(--md-sys-color-primary);
+        }
+
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            backdrop-filter: blur(12px);
+            z-index: 200;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--md-sys-color-surface-variant);
+            padding: 32px;
+            border-radius: 32px;
+            max-width: 90%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #444;
+        }
+
+        .page-grid-item {
+            padding: 24px;
+            border-radius: 16px;
+            background: #111;
+            color: var(--md-sys-color-on-surface-variant);
+            cursor: pointer;
+            text-align: center;
+            font-weight: 500;
+            border: 2px solid #333;
+            font-size: 18px;
+        }
+
+        .page-grid-item.selected {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            border-color: var(--md-sys-color-primary);
+        }
+
+        .btn-filled {
+            background: var(--md-sys-color-primary);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 24px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn-filled:active {
+            background: var(--md-sys-color-primary-container);
+        }
+    </style>
+    <script src="/static/lib/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = '/static/lib/pdf.worker.min.js';</script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+
+<body>
+    <!-- SVG Library -->
+    <svg style="display: none;">
+        <symbol id="icon-home" viewBox="0 0 24 24">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" fill="currentColor" />
+        </symbol>
+        <symbol id="icon-draw" viewBox="0 0 24 24">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" fill="currentColor" />
+        </symbol>
+        <symbol id="icon-delete" viewBox="0 0 24 24">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-pages" viewBox="0 0 24 24">
+            <path
+                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+                fill="currentColor" />
+        </symbol>
+        <symbol id="icon-scan" viewBox="0 0 24 24">
+            <path d="M12 4c-4.42 0-8 3.58-8 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm1 13h-2v-6h2v6zm0-8h-2V7h2v2z"
+                fill="currentColor" />
+        </symbol>
+    </svg>
+
+    <div id="ocr-status">
+        <div style="font-weight: 500; margin-bottom: 8px;">🔍 Analysiere Stimmen...</div>
+        <div id="ocr-progress" style="opacity: 0.8;">Seite 1 / ?</div>
+    </div>
+
+    <div class="toolbar" id="toolbar">
+        <button class="icon-btn" onclick="location.href='/'" title="Bibliothek">
+            <svg width="24" height="24">
+                <use href="#icon-home" />
+            </svg>
+        </button>
+
+        <div class="divider"></div>
+
+        <select id="part-select" onchange="changePart()" style="max-width: 140px;">
+            <option value="All">Lade...</option>
+        </select>
+
+        <div class="divider"></div>
+
+        <input type="range" id="zoom-slider" min="50" max="300" value="100" style="width: 100px;">
+
+        <div class="divider"></div>
+
+        <button id="draw-mode-btn" class="icon-btn" onclick="toggleDrawMode()" title="Zeichnen">
+            <svg width="24" height="24">
+                <use href="#icon-draw" />
+            </svg>
+        </button>
+
+        <button class="icon-btn" onclick="clearAnnotations()" title="Löschen">
+            <svg width="24" height="24">
+                <use href="#icon-delete" />
+            </svg>
+        </button>
+
+        <button class="icon-btn" onclick="openPageSelector()" title="Seiten wählen">
+            <svg width="24" height="24">
+                <use href="#icon-pages" />
+            </svg>
+        </button>
+
+        <button id="ocr-btn" class="icon-btn" onclick="startOcr()" title="Scan">
+            <svg width="24" height="24">
+                <use href="#icon-scan" />
+            </svg>
+        </button>
+
+        <div class="divider"></div>
+
+        <div class="toolbar-title" id="page-indicator">
+            <span id="page_num">1</span> / <span id="page_count">1</span>
+        </div>
+    </div>
+
+    <div id="canvas-container">
+        <canvas id="pdf-canvas"></canvas>
+        <canvas id="draw-canvas"></canvas>
+
+        <div class="nav-overlay nav-left" onclick="handleTap('prev')" id="nav-left"></div>
+        <div class="nav-overlay nav-right" onclick="handleTap('next')" id="nav-right"></div>
+
+        <div id="feedback-left" class="touch-feedback feedback-left"></div>
+        <div id="feedback-right" class="touch-feedback feedback-right"></div>
+    </div>
+
+    <!-- Page Selection Modal -->
+    <div id="page-selector-modal" class="modal">
+        <div class="modal-content">
+            <h2 style="margin-top: 0;">Seiten auswählen</h2>
+            <div style="margin-bottom: 24px; display: flex; gap: 12px;">
+                <button onclick="setSelectedAll(false)" class="btn-filled"
+                    style="background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">Alles
+                    abwählen</button>
+                <button onclick="setSelectedAll(true)" class="btn-filled"
+                    style="background: var(--md-sys-color-surface-variant); color: var(--md-sys-color-on-surface-variant);">Alles
+                    auswählen</button>
+            </div>
+            <div id="page-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 12px; overflow-y: auto; padding: 4px;">
+                <!-- Grid items generated by JS -->
+            </div>
+            <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px;">
+                <button onclick="closePageSelector()" class="btn-filled"
+                    style="background: transparent; color: var(--md-sys-color-primary);">Abbrechen</button>
+                <button onclick="applyPageSelection()" class="btn-filled">Anwenden</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Selection Modal -->
+    <div id="page-selector-modal"
+        style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 100; flex-direction: column; align-items: center; justify-content: center;">
+        <h2 style="color: white; margin-bottom: 20px;">Seiten auswählen</h2>
+        <div style="margin-bottom: 20px; display: flex; gap: 10px;">
+            <button onclick="setSelectedAll(false)"
+                style="padding: 10px 20px; font-size: 16px; background: #555; color: white; border: 1px solid #777; border-radius: 5px; cursor: pointer;">Alles
+                abwählen</button>
+            <button onclick="setSelectedAll(true)"
+                style="padding: 10px 20px; font-size: 16px; background: #555; color: white; border: 1px solid #777; border-radius: 5px; cursor: pointer;">Alles
+                auswählen</button>
+        </div>
+        <div id="page-grid"
+            style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-height: 70vh; overflow-y: auto; padding: 20px;">
+            <!-- Grid items generated by JS -->
+        </div>
+        <div style="margin-top: 20px; display: flex; gap: 20px;">
+            <button onclick="applyPageSelection()"
+                style="padding: 15px 30px; font-size: 20px; background: #4CAF50; color: white; border: none; border-radius: 5px;">Anwenden</button>
+            <button onclick="closePageSelector()"
+                style="padding: 15px 30px; font-size: 20px; background: #f44336; color: white; border: none; border-radius: 5px;">Abbrechen</button>
+        </div>
+    </div>
+
+    <script>
+        const url = '/pdf/{{ song.file_path }}';
+        const songKey = 'song_settings_{{ song.id }}';
+        const padding = 20; // 0.5cm approx padding
+
+        let pdfDoc = null,
+            pdfCanvas = document.getElementById('pdf-canvas'),
+            ctx = pdfCanvas.getContext('2d'),
+            drawCanvas = document.getElementById('draw-canvas'),
+            drawCtx = drawCanvas.getContext('2d');
+
+        // State
+        let currentZoom = 100;
+        let isDrawingMode = false;
+        let isDrawing = false;
+
+        let pageRendering = false;
+        let pageNumPending = null;
+
+        // Data
+        let availableParts = {};
+        let pageOrientations = {}; // { pageNum: 'landscape'|'portrait' }
+
+        // Navigation State
+        // "Virtual Pages" are what the user sees. 
+        // A single PDF page (Landscape) might be 2 Virtual Pages (Left, Right).
+        let virtualPages = []; // [ { pdfPage: 1, side: 'left' }, { pdfPage: 1, side: 'right' }, { pdfPage: 2, side: 'full' } ]
+        let currentVirtualIndex = 0; // 0-based index into virtualPages
+
+        // Filter Settings
+        let currentPart = 'All';
+        let manualPages = []; // Array of PDF page nums
+
+        // Load saved settings
+        const savedSettings = JSON.parse(localStorage.getItem(songKey) || '{}');
+        if (savedSettings.zoom) {
+            currentZoom = savedSettings.zoom;
+            document.getElementById('zoom-slider').value = currentZoom;
+        }
+        if (savedSettings.manualPages) {
+            manualPages = savedSettings.manualPages;
+        } else if (savedSettings.part) {
+            currentPart = savedSettings.part;
+        }
+
+        // --- Init ---
+        pdfjsLib.getDocument(url).promise.then(async function (pdfDoc_) {
+            pdfDoc = pdfDoc_;
+
+            // 1. Detect Orientations (Fast scan of viewports)
+            await detectPageOrientations();
+
+            // 2. Load Parts
+            await loadParts(); // This also calculates filters
+
+            // 3. Initial Render
+            // Restore last position? For now start at 0
+            renderPage(currentVirtualIndex);
+        });
+
+        async function detectPageOrientations() {
+            // We just need the viewport of each page to check ratio
+            const promises = [];
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                promises.push(pdfDoc.getPage(i).then(page => {
+                    const view = page.getViewport({ scale: 1 });
+                    // If Width > Height * 1.3 (tolerance), assume Double Page Landscape
+                    if (view.width > view.height * 1.2) {
+                        pageOrientations[i] = 'landscape';
+                    } else {
+                        pageOrientations[i] = 'portrait';
+                    }
+                }));
+            }
+            await Promise.all(promises);
+        }
+
+        // --- OCR Logic ---
+        async function startOcr() {
+            if (!confirm("Soll die Stimmenerkennung (OCR) für alle Seiten gestartet werden? Das kann einen Moment dauern.")) return;
+
+            const statusDiv = document.getElementById('ocr-status');
+            const progressSpan = document.getElementById('ocr-progress');
+            const btn = document.getElementById('ocr-btn');
+
+            statusDiv.style.display = 'block';
+            btn.disabled = true;
+            btn.innerText = '⌛ Scanne...';
+
+            const pageTexts = {};
+            const worker = await Tesseract.createWorker('deu+eng'); // Load German and English
+
+            try {
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    progressSpan.innerText = `Seite ${i} / ${pdfDoc.numPages}`;
+
+                    const page = await pdfDoc.getPage(i);
+                    // Render only top 25% of page for OCR (usually where headers are)
+                    const viewport = page.getViewport({ scale: 2.0 }); // Higher scale for better OCR
+
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+
+                    // We only want the top part
+                    const h = viewport.height * 0.25;
+                    canvas.width = viewport.width;
+                    canvas.height = h;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport,
+                        transform: [1, 0, 0, 1, 0, 0] // No offset needed if we just let it draw and crop later? 
+                        // Actually, better to use the transform to only draw the top.
+                    }).promise;
+
+                    const { data: { text } } = await worker.recognize(canvas);
+                    pageTexts[`page_${i}`] = text;
+                    console.log(`Text Page ${i}:`, text);
+                }
+
+                // Now send to backend for regex analysis
+                const response = await fetch(`/run_ocr_analysis/{{ song.id }}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(pageTexts)
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    alert("Erkennung abgeschlossen! Stimmen wurden aktualisiert.");
+                    location.reload(); // Reload to refresh the part list
+                } else {
+                    alert("Fehler bei der Analyse: " + result.error);
+                }
+
+            } catch (err) {
+                console.error(err);
+                alert("OCR Fehlgeschlagen: " + err.message);
+            } finally {
+                await worker.terminate();
+                statusDiv.style.display = 'none';
+                btn.disabled = false;
+                btn.innerText = '🔍 Stimm-Scan';
+            }
+        }
+
+        function calculateVirtualPages() {
+            // 1. Determine which PDF pages are "active" based on filters
+            let activePdfPages = [];
+            if (manualPages.length > 0) {
+                activePdfPages = manualPages.sort((a, b) => a - b);
+                // Also ensure Part Select is capable of showing this state
+            } else if (currentPart !== 'All' && availableParts[currentPart]) {
+                activePdfPages = availableParts[currentPart];
+            } else {
+                activePdfPages = Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
+            }
+
+            // 2. Build Virtual Pages based on Orientation
+            virtualPages = [];
+            activePdfPages.forEach(pNum => {
+                if (pageOrientations[pNum] === 'landscape') {
+                    // Split
+                    virtualPages.push({ pdfPage: pNum, side: 'left' });
+                    virtualPages.push({ pdfPage: pNum, side: 'right' });
+                } else {
+                    virtualPages.push({ pdfPage: pNum, side: 'full' });
+                }
+            });
+
+            // Update Page Count UI
+            updatePageCounter();
+        }
+
+        async function renderPage(vIndex) {
+            if (vIndex < 0 || vIndex >= virtualPages.length) return;
+            currentVirtualIndex = vIndex;
+
+            pageRendering = true;
+            const vPage = virtualPages[vIndex];
+            const page = await pdfDoc.getPage(vPage.pdfPage);
+
+            // --- Logic for Split Rendering ---
+
+            // Container Dims
+            const container = document.getElementById('canvas-container');
+            const cw = container.clientWidth;
+            const ch = container.clientHeight;
+
+            // 1. Render to Offscreen Canvas for Auto-Crop Analysis
+            // We need to render the *relevant part* of the page.
+
+            const baseViewport = page.getViewport({ scale: 0.5 }); // Low res for speed detection
+
+            // Calculate effective width of the sub-page
+            let scanWidth = baseViewport.width;
+            let scanHeight = baseViewport.height;
+            let scanOffsetX = 0; // Where to draw the page relative to canvas 0,0
+
+            if (vPage.side === 'left') {
+                scanWidth = baseViewport.width / 2;
+                // Draw normally (left half is visible at 0,0)
+            } else if (vPage.side === 'right') {
+                scanWidth = baseViewport.width / 2;
+                scanOffsetX = - (baseViewport.width / 2); // Shift left to bring right half to 0,0
+            }
+
+            const offCanvas = document.createElement('canvas');
+            offCanvas.width = scanWidth;
+            offCanvas.height = scanHeight;
+            const offCtx = offCanvas.getContext('2d', { willReadFrequently: true });
+
+            // Transform context to handle offset
+            offCtx.translate(scanOffsetX, 0);
+
+            await page.render({ canvasContext: offCtx, viewport: baseViewport }).promise;
+
+            // 2. Auto-Crop Analysis on the partial image
+            // We need to reset transform to read pixels correctly or just read form 0,0
+            // getImageData reads device pixels, so we are good.
+            const bbox = getContentBoundingBox(offCtx, offCanvas.width, offCanvas.height);
+
+            // Restore context for sanity (though we discard it)
+            offCtx.setTransform(1, 0, 0, 1, 0, 0);
+
+            // bbox is in 0.5 scale relative to the *split* page.
+            const contentW = (bbox.w / 0.5);
+            const contentH = (bbox.h / 0.5);
+
+            // 3. Calculate Final Scale to fit Container
+            const scaleW = (cw - (padding * 2)) / contentW;
+            const scaleH = (ch - (padding * 2)) / contentH;
+            const baseScale = Math.min(scaleW, scaleH);
+            const finalScale = baseScale * (currentZoom / 100);
+
+            // 4. Calculate Final Offsets for Centering
+            const visibleW = contentW * finalScale;
+            const visibleH = contentH * finalScale;
+            const screenOffsetX = (cw - visibleW) / 2;
+            const screenOffsetY = (ch - visibleH) / 2;
+
+            // 5. Calculate Render Transforms
+            // We want the TOP-LEFT of the content (bbox.x, bbox.y in split-coords) to be at (screenOffsetX, screenOffsetY).
+            // Canvas needs to hold the 'visible' part.
+            // But we render the *page* which is huge.
+            // Strategy: Move the canvas element so the desired box is centered.
+
+            // Effectively:
+            // Canvas Left = screenOffsetX - (bbox.x/0.5 * finalScale)
+            // Canvas Top = screenOffsetY - (bbox.y/0.5 * finalScale)
+
+            // BUT: If it's a 'right' side, the text starts at 0 relative to the split.
+            // But relative to the WHOLE page, it starts at (OriginalWidth/2).
+            // We are drawing the WHOLE page onto the canvas, but clipping it via canvas size?
+            // No, PDF.js renders whole page.
+
+            // Better: We render the split view exactly like the scan view, but at high res.
+            // Setup final canvas to be size of the viewport (or larger if we want to just move it).
+            // Actually, simplest is:
+            // Render the WHOLE page on a big canvas, then position it so the relevant part (Right Half -> BBox) is visible?
+            // This is wasteful for memory.
+
+            // Optimization: Use the same trick as scan.
+            // Canvas size = Split size (approx).
+            // Context translate (-Offset).
+
+            const highResViewport = page.getViewport({ scale: finalScale });
+
+            let finalCanvasWidth = highResViewport.width;
+            let finalCanvasHeight = highResViewport.height;
+            let finalDrawOffsetX = 0;
+
+            if (vPage.side === 'left') {
+                finalCanvasWidth = highResViewport.width / 2;
+            } else if (vPage.side === 'right') {
+                finalCanvasWidth = highResViewport.width / 2;
+                finalDrawOffsetX = - (highResViewport.width / 2);
+            }
+
+            // Set Canvas to the size of the *View* (roughly)
+            // Actually, we want canvas size = visibleW, visibleH to exclude whitespace?
+            // Or just keep it simpe: Canvas = Half Page Size. Position = Center.
+            // Let's stick to the previous positioning logic which moves the canvas div.
+            // But now the 'Canvas' content is different (Half Page).
+
+            // Re-calculate positioning based on the *Rendered Half Canvas*.
+            // BBox (x,y) is relative to the Half Canvas (0,0).
+            const canvasLeft = screenOffsetX - ((bbox.x / 0.5) * finalScale);
+            const canvasTop = screenOffsetY - ((bbox.y / 0.5) * finalScale);
+
+            // Resize Canvas to fit the HALF page (scaled)
+            pdfCanvas.width = finalCanvasWidth;
+            pdfCanvas.height = finalCanvasHeight;
+            drawCanvas.width = finalCanvasWidth;
+            drawCanvas.height = finalCanvasHeight;
+
+            // Render
+            ctx.save();
+            ctx.translate(finalDrawOffsetX, 0);
+            await page.render({ canvasContext: ctx, viewport: highResViewport }).promise;
+            ctx.restore();
+
+            // Position Canvas
+            pdfCanvas.style.left = canvasLeft + 'px';
+            pdfCanvas.style.top = canvasTop + 'px';
+            drawCanvas.style.left = canvasLeft + 'px';
+            drawCanvas.style.top = canvasTop + 'px';
+
+            // Draw Annotations (Need adjustment for split?)
+            // Annotations are currently global per PDF page.
+            // If I draw on Right side, x coord is 0..Width.
+            // But stored annotation is 0..FullWidth?
+            // For simplicity: We enable drawing on the visible canvas. 
+            // Save logic: Store 'song_{id}_page_{pdfPage}_{side}'.
+            // This treats Left/Right as separate annotation surfaces. Correct and simple.
+
+            loadAnnotations(vPage.pdfPage, vPage.side);
+
+            pageRendering = false;
+            updatePageCounter();
+
+            if (pageNumPending !== null) {
+                renderPage(pageNumPending);
+                pageNumPending = null;
+            }
+        }
+
+        // --- Utils ---
+        function getContentBoundingBox(ctx, w, h) {
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const data = imgData.data;
+            let minX = w, minY = h, maxX = 0, maxY = 0;
+            const threshold = 250;
+
+            for (let y = 0; y < h; y += 5) {
+                for (let x = 0; x < w; x += 5) {
+                    const i = (y * w + x) * 4;
+                    if (data[i] < threshold || data[i + 1] < threshold || data[i + 2] < threshold) {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX < minX) return { x: 0, y: 0, w: w, h: h };
+            return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+        }
+
+        function queueRenderPage(vIndex) {
+            if (pageRendering) {
+                pageNumPending = vIndex;
+            } else {
+                renderPage(vIndex);
+            }
+        }
+
+        function updatePageCounter() {
+            document.getElementById('page_num').textContent = currentVirtualIndex + 1;
+            document.getElementById('page_count').textContent = virtualPages.length;
+        }
+
+        // --- Navigation ---
+        function prevPage() {
+            if (currentVirtualIndex <= 0) return;
+            queueRenderPage(currentVirtualIndex - 1);
+        }
+
+        function nextPage() {
+            if (currentVirtualIndex >= virtualPages.length - 1) return;
+            queueRenderPage(currentVirtualIndex + 1);
+        }
+
+        // --- Parts & Manual Filter ---
+        function loadParts() {
+            return fetch('/analyze_parts/{{ song.id }}')
+                .then(r => r.json())
+                .then(data => {
+                    availableParts = data;
+                    const select = document.getElementById('part-select');
+                    select.innerHTML = '<option value="All">Alle Stimmen</option>';
+
+                    let hasCurrent = false;
+                    for (const [name, pages] of Object.entries(availableParts)) {
+                        const opt = document.createElement('option');
+                        opt.value = name;
+                        opt.textContent = name + ' (' + pages.length + ' S.)';
+                        select.appendChild(opt);
+                        if (name === currentPart) hasCurrent = true;
+                    }
+
+                    if (manualPages.length > 0) {
+                        const opt = document.createElement('option');
+                        opt.value = "Manual";
+                        opt.textContent = "Benutzerdefiniert";
+                        select.appendChild(opt);
+                        select.value = "Manual";
+                    } else if (hasCurrent) {
+                        select.value = currentPart;
+                    } else {
+                        currentPart = 'All';
+                    }
+
+                    calculateVirtualPages();
+                });
+        }
+
+        function changePart() {
+            const val = document.getElementById('part-select').value;
+            if (val === 'Manual') {
+                // Keep manual
+            } else {
+                currentPart = val;
+                manualPages = [];
+                const settings = JSON.parse(localStorage.getItem(songKey) || '{}');
+                settings.part = currentPart;
+                settings.manualPages = null;
+                localStorage.setItem(songKey, JSON.stringify(settings));
+            }
+            calculateVirtualPages();
+            currentVirtualIndex = 0; // Reset to start
+            renderPage(0);
+        }
+
+        function applyPageSelection() {
+            // ... (Same UI logic for gathering selected pages)
+            const grid = document.getElementById('page-grid');
+            const selected = [];
+            grid.childNodes.forEach(node => {
+                if (node.dataset.selected === 'true') {
+                    selected.push(parseInt(node.dataset.pageNum));
+                }
+            });
+            manualPages = selected.sort((a, b) => a - b);
+
+            // Save settings
+            const settings = JSON.parse(localStorage.getItem(songKey) || '{}');
+            settings.manualPages = manualPages;
+            settings.part = null;
+            localStorage.setItem(songKey, JSON.stringify(settings));
+
+            document.getElementById('part-select').value = 'Manual';
+
+            calculateVirtualPages();
+            currentVirtualIndex = 0;
+            renderPage(0);
+            closePageSelector();
+        }
+
+        function openPageSelector() {
+            const modal = document.getElementById('page-selector-modal');
+            const grid = document.getElementById('page-grid');
+            grid.innerHTML = '';
+
+            let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
+
+            for (let i = 1; i <= pdfDoc.numPages; i++) {
+                const div = document.createElement('div');
+                div.className = 'page-grid-item' + (currentlySelected.includes(i) ? ' selected' : '');
+                div.textContent = i;
+                div.dataset.pageNum = i;
+
+                const isLand = pageOrientations[i] === 'landscape';
+                if (isLand) {
+                    div.innerHTML += '<br><small style="font-size:10px; opacity:0.7">Landscape</small>';
+                }
+
+                div.dataset.selected = currentlySelected.includes(i);
+
+                div.onclick = function () {
+                    const isSel = div.dataset.selected === 'true';
+                    div.dataset.selected = !isSel;
+                    if (!isSel) div.classList.add('selected');
+                    else div.classList.remove('selected');
+                };
+                grid.appendChild(div);
+            }
+            modal.style.display = 'flex';
+        }
+
+        function setSelectedAll(selected) {
+            const grid = document.getElementById('page-grid');
+            grid.childNodes.forEach(div => {
+                div.dataset.selected = selected;
+                if (selected) div.classList.add('selected');
+                else div.classList.remove('selected');
+            });
+        }
+
+        function closePageSelector() { document.getElementById('page-selector-modal').style.display = 'none'; }
+
+        // --- Common Listeners ---
+        document.getElementById('zoom-slider').addEventListener('input', (e) => {
+            currentZoom = e.target.value;
+            const settings = JSON.parse(localStorage.getItem(songKey) || '{}');
+            settings.zoom = currentZoom;
+            localStorage.setItem(songKey, JSON.stringify(settings));
+            renderPage(currentVirtualIndex);
+        });
+
+        // ... (Drawing toggle and events essentially same, just need saveAnnotations update) 
+
+        function toggleDrawMode() {
+            isDrawingMode = !isDrawingMode;
+            const btn = document.getElementById('draw-mode-btn');
+            const navLeft = document.getElementById('nav-left');
+            const navRight = document.getElementById('nav-right');
+            if (isDrawingMode) {
+                btn.classList.add('active');
+                drawCanvas.style.pointerEvents = 'auto';
+                navLeft.style.display = 'none'; navRight.style.display = 'none';
+            } else {
+                btn.classList.remove('active');
+                drawCanvas.style.pointerEvents = 'none';
+                navLeft.style.display = 'block'; navRight.style.display = 'block';
+            }
+        }
+
+        drawCanvas.addEventListener('mousedown', startDrawing);
+        drawCanvas.addEventListener('mousemove', draw);
+        drawCanvas.addEventListener('mouseup', stopDrawing);
+        drawCanvas.addEventListener('mouseout', stopDrawing);
+        drawCanvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent("mousedown", { clientX: touch.clientX, clientY: touch.clientY });
+            drawCanvas.dispatchEvent(mouseEvent);
+        });
+        drawCanvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const mouseEvent = new MouseEvent("mousemove", { clientX: touch.clientX, clientY: touch.clientY });
+            drawCanvas.dispatchEvent(mouseEvent);
+        });
+        drawCanvas.addEventListener('touchend', (e) => { drawCanvas.dispatchEvent(new MouseEvent("mouseup", {})); });
+
+        function startDrawing(e) { if (isDrawingMode) { isDrawing = true; draw(e); } }
+        function draw(e) {
+            if (!isDrawing || !isDrawingMode) return;
+            const rect = drawCanvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left);
+            const y = (e.clientY - rect.top);
+            drawCtx.lineWidth = 3; drawCtx.lineCap = 'round'; drawCtx.strokeStyle = 'red';
+            drawCtx.lineTo(x, y); drawCtx.stroke(); drawCtx.beginPath(); drawCtx.moveTo(x, y);
+        }
+        // Updated Storage keys for Side
+        function stopDrawing() {
+            if (!isDrawing) return; isDrawing = false; drawCtx.beginPath();
+            const vPage = virtualPages[currentVirtualIndex];
+            saveAnnotations(vPage.pdfPage, vPage.side);
+        }
+
+        function saveAnnotations(page, side) {
+            const data = drawCanvas.toDataURL();
+            const storageKey = songKey + '_page_' + page + '_' + side;
+            localStorage.setItem(storageKey, data);
+        }
+
+        function loadAnnotations(page, side) {
+            drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+            const storageKey = songKey + '_page_' + page + '_' + side;
+            const data = localStorage.getItem(storageKey);
+            if (data) {
+                const img = new Image();
+                img.onload = function () { drawCtx.drawImage(img, 0, 0); };
+                img.src = data;
+            }
+        }
+
+        function clearAnnotations() {
+            if (confirm("Alle Zeichnungen auf dieser Seite löschen?")) {
+                drawCtx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+                const vPage = virtualPages[currentVirtualIndex];
+                const storageKey = songKey + '_page_' + vPage.pdfPage + '_' + vPage.side;
+                localStorage.removeItem(storageKey);
+            }
+        }
+
+        function handleTap(action) {
+            if (isDrawingMode) return;
+            if (action === 'prev') { triggerFeedback('left'); prevPage(); }
+            else if (action === 'next') { triggerFeedback('right'); nextPage(); }
+        }
+        function triggerFeedback(side) {
+            const el = document.getElementById('feedback-' + side);
+            el.classList.add('active'); setTimeout(() => el.classList.remove('active'), 200);
+        }
+        document.addEventListener('keydown', (e) => {
+            if (isDrawingMode) return;
+            if (['ArrowRight', 'Space', 'Enter', 'PageDown'].includes(e.key) || e.code == 'Space') { triggerFeedback('right'); nextPage(); }
+            else if (['ArrowLeft', 'Backspace', 'PageUp'].includes(e.key)) { triggerFeedback('left'); prevPage(); }
+        });
+        document.getElementById('canvas-container').addEventListener('click', (e) => {
+            if (isDrawingMode) return;
+            if (e.target.id === 'canvas-container' || e.target.id === 'pdf-canvas') {
+                document.getElementById('toolbar').classList.toggle('visible');
+            }
+        });
+    </script>
+</body>
+
+</html>
