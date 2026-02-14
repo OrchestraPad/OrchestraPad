@@ -683,13 +683,13 @@
                 item.style.fontSize = '16px';
                 item.innerText = list.name;
 
-                // Add event listener directly
-                item.addEventListener('click', function (e) {
+                // Use direct onclick which is often more reliable on older browsers/touch
+                item.onclick = function (e) {
                     e.preventDefault();
                     e.stopPropagation();
                     console.log('Adding to setlist:', list.id, songId);
                     addToSetlist(list.id, songId);
-                });
+                };
 
                 container.appendChild(item);
             });
