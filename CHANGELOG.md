@@ -2,6 +2,12 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.6] - 2026-02-14
+### Behoben
+- **Beenden-Fehler**: Server-Beenden verzögert, um "Failed to fetch" Fehler zu vermeiden.
+- **Benutzerführung**: Eingabefeld für neue Mappen nach oben verschoben für bessere Erreichbarkeit.
+- **Design**: Schriftfarbe im Eingabefeld korrigiert (weiß auf schwarzem Grund).
+
 ## [1.1.5] - 2026-02-14
 ### Behoben
 - **Keyring-Popup**: Unterdrückung des "Unlock Keyring" Fensters beim Browserstart durch Chromium-Flags.

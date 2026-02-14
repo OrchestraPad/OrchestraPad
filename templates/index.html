@@ -230,6 +230,8 @@
             width: 100%;
             box-sizing: border-box;
             outline: none;
+            color: white;
+            /* Ensure text is visible on dark background */
         }
 
         .input-pill:focus {
@@ -357,6 +359,18 @@
             <div id="setlist-list" style="flex: 1; overflow-y: auto;">
                 <!-- Setlists go here -->
             </div>
+            <!-- Sidebar Creation Block moved above Version Info -->
+            <div
+                style="padding: 12px; background: rgba(0,0,0,0.03); border-radius: var(--md-sys-shape-corner-large); margin-bottom: 8px;">
+                <input type="text" id="new-setlist-name" placeholder="Neue Mappe..." class="input-pill">
+                <button class="btn-fab" onclick="createSetlist()"
+                    style="width: 100%; margin-top: 12px; justify-content: center; padding: 12px;">
+                    <svg width="20" height="20">
+                        <use href="#icon-add" />
+                    </svg>
+                    Erstellen
+                </button>
+            </div>
 
             <!-- Version Info -->
             <div
@@ -384,17 +398,6 @@
                 <span style="color: var(--md-sys-color-primary);">Ausschalten</span>
             </div>
 
-            <div
-                style="margin-top: auto; padding: 12px; background: rgba(0,0,0,0.03); border-radius: var(--md-sys-shape-corner-large);">
-                <input type="text" id="new-setlist-name" placeholder="Neue Mappe..." class="input-pill">
-                <button class="btn-fab" onclick="createSetlist()"
-                    style="width: 100%; margin-top: 12px; justify-content: center; padding: 12px;">
-                    <svg width="20" height="20">
-                        <use href="#icon-add" />
-                    </svg>
-                    Erstellen
-                </button>
-            </div>
         </div>
 
         <!-- Main Content -->

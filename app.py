@@ -408,8 +408,14 @@ def system_control():
             return jsonify({"status": "error", "message": "Herunterfahren nur auf dem Pi möglich."})
             
         elif action == 'exit':
-            # Clean exit for the python process
-            os.kill(os.getpid(), signal.SIGINT)
+            # Clean exit for the python process with a small delay to allow response to reach browser
+            import threading
+            import time
+            def delayed_exit():
+                time.sleep(0.5)
+                os.kill(os.getpid(), signal.SIGINT)
+            
+            threading.Thread(target=delayed_exit).start()
             return jsonify({"status": "success", "message": "Programm wird beendet..."})
             
         return jsonify({"status": "error", "message": "Ungültige Aktion."})
