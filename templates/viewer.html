@@ -636,10 +636,10 @@
                 // Save to cache and server
                 cachedBboxes[vIndex] = bbox;
                 saveSettingsToServer();
-            }
 
-            // Restore context for sanity (though we discard it)
-            offCtx.setTransform(1, 0, 0, 1, 0, 0);
+                // Restore context for sanity (though we discard it)
+                offCtx.setTransform(1, 0, 0, 1, 0, 0);
+            }
 
             // bbox is in 0.5 scale relative to the *split* page.
             const contentW = (bbox.w / 0.5);

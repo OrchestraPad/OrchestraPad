@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.8] - 2026-02-14
+### Behoben
+- **Kritischer Fehler**: Schwarzer Bildschirm beim Öffnen von Stücken (JavaScript-Referenzfehler in viewer.html).
+- **Scan-Fehler**: Aktualisieren-Button funktioniert jetzt wieder korrekt.
+
 ## [1.1.7] - 2026-02-14
 ### Hinzugefügt
 - **Dauerhafte Einstellungen**: Zoom, Seitenwahl und Stimmen-Filter werden jetzt in der Datenbank gespeichert und bleiben auch nach einem Neustart (im Inkognito-Modus) erhalten.

@@ -289,6 +289,10 @@ def scan_library():
     """Scans multiple locations for PDFs and updates the database."""
     added = 0
     
+    # Ensure local storage path exists
+    if not os.path.exists(STORAGE_PATH):
+        os.makedirs(STORAGE_PATH)
+    
     # Locations to scan
     scan_paths = [STORAGE_PATH]
     if os.path.exists(USB_BASE_PATH):
