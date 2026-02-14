@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.12] - 2026-02-14
+### Behoben
+- **Technischer Fehler**: Fehlende Schnittstelle für das Hinzufügen von Stücken zu Mappen ergänzt. Jetzt werden die Stücke auch tatsächlich gespeichert.
+
 ## [1.2.11] - 2026-02-14
 ### Neu
 - **Mappen-Workflow**: Hinzufügen zu Mappen erfordert jetzt eine Auswahl und anschließende Bestätigung ("Hinzufügen"-Button), um Fehler zu vermeiden.

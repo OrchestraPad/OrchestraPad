@@ -445,6 +445,38 @@ def handle_setlists():
             return jsonify({'id': new_list.id, 'name': new_list.name})
         return jsonify({'error': 'Name missing'}), 400
 
+@app.route('/setlist_entry', methods=['POST', 'DELETE'])
+def handle_setlist_entry_route():
+    if request.method == 'POST':
+        data = request.json
+        setlist_id = data.get('setlist_id')
+        song_id = data.get('song_id')
+        
+        # Check if already exists
+        exists = SetlistSong.query.filter_by(setlist_id=setlist_id, song_id=song_id).first()
+        if exists:
+            return jsonify({'status': 'exists', 'message': 'Song already in setlist'})
+            
+        # Get highest position
+        max_pos = db.session.query(db.func.max(SetlistSong.position)).filter_by(setlist_id=setlist_id).scalar() or 0
+        new_entry = SetlistSong(setlist_id=setlist_id, song_id=song_id, position=max_pos+1)
+        db.session.add(new_entry)
+        db.session.commit()
+        return jsonify({'status': 'success'})
+        
+    elif request.method == 'DELETE':
+        # This handle deletion by entry_id (from /setlist_entry/<int:id>)
+        # But wait, the route above doesn't have <int:id>. 
+        # We need a separate route for DELETE /setlist_entry/<id>
+        return jsonify({'error': 'Method not allowed here'}), 405
+
+@app.route('/setlist_entry/<int:entry_id>', methods=['DELETE'])
+def delete_setlist_entry(entry_id):
+    entry = SetlistSong.query.get_or_404(entry_id)
+    db.session.delete(entry)
+    db.session.commit()
+    return jsonify({'status': 'success'})
+
 @app.route('/setlist/<int:setlist_id>', methods=['GET', 'POST', 'DELETE'])
 def handle_setlist(setlist_id):
     setlist = Setlist.query.get_or_404(setlist_id)
@@ -453,17 +485,6 @@ def handle_setlist(setlist_id):
         db.session.delete(setlist)
         db.session.commit()
         return jsonify({'status': 'deleted'})
-    
-    if request.method == 'POST':
-        # Add song to setlist
-        data = request.json
-        song_id = data.get('song_id')
-        # Get highest position
-        max_pos = db.session.query(db.func.max(SetlistSong.position)).filter_by(setlist_id=setlist_id).scalar() or 0
-        new_entry = SetlistSong(setlist_id=setlist_id, song_id=song_id, position=max_pos+1)
-        db.session.add(new_entry)
-        db.session.commit()
-        return jsonify({'status': 'added'})
 
     # GET: return songs in order
     songs = []
