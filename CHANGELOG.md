@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.10] - 2026-02-14
+### Behoben
+- **Kritischer Fehler**: Aktualisieren-Button funktioniert wieder (Funktionsname korrigiert).
+
 ## [1.1.9] - 2026-02-14
 ### Hinzugefügt
 - **Debug-Info**: Beim "Aktualisieren" werden jetzt detaillierte Informationen angezeigt, welche Pfade gescannt werden und warum USB-Sticks eventuell nicht gefunden werden.
