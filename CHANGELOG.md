@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.2] - 2026-02-14
+### Behoben
+- **Update-Mechanismus**: `update.sh` erzwingt jetzt einen Hard Reset, um sicherzustellen, dass alle Änderungen vom Server übernommen werden.
+
 ## [1.2.1] - 2026-02-14
 ### Hinzugefügt
 - **Löschen-Funktion**: Stücke können jetzt über einen Löschen-Button in der Bibliothek entfernt werden. Löscht sowohl den Datenbank-Eintrag als auch die PDF-Datei.

@@ -18,7 +18,12 @@ fi
 # 2. Sync Files (Git)
 echo "[2/3] Suche nach Programm-Aktualisierungen..."
 if [ -d ".git" ]; then
-    git pull
+    echo "Sichere lokale Änderungen..."
+    git stash
+    echo "Hole Updates vom Server..."
+    git fetch --all
+    git reset --hard origin/main
+    echo "✓ Programm-Dateien aktualisiert"
 else
     echo "HINWEIS: Kein Git-Repository gefunden. Manueller Download erforderlich."
     echo "Falls du das Programm per ZIP-Upload aktualisieren möchtest,"
