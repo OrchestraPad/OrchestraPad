@@ -8,6 +8,18 @@ cd ~/Noten
 echo "Step 1: Stopping service..."
 sudo systemctl stop orchestrapad
 
+# 3. Install Dependencies
+echo "[3/3] Aktualisiere Abhängigkeiten..."
+if [ -f "requirements.txt" ]; then
+    pip3 install -r requirements.txt --break-system-packages
+fi
+
+# Check for OCR (Tesseract)
+if ! dpkg -s tesseract-ocr >/dev/null 2>&1; then
+    echo "OCR-Software wird installiert (kann dauern)..."
+    sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-deu libtesseract-dev
+fi
+
 echo "Step 2: Backing up and resetting..."
 git stash
 git fetch --all

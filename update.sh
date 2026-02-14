@@ -30,6 +30,18 @@ else
     echo "kopiere die neuen Dateien einfach in diesen Ordner: $APP_DIR"
 fi
 
+# 3. Install Dependencies
+echo "[3/3] Aktualisiere Abhängigkeiten..."
+if [ -f "requirements.txt" ]; then
+    pip3 install -r requirements.txt --break-system-packages
+fi
+
+# Check for OCR (Tesseract)
+if ! dpkg -s tesseract-ocr >/dev/null 2>&1; then
+    echo "OCR-Software wird installiert (kann dauern)..."
+    sudo apt-get update && sudo apt-get install -y poppler-utils tesseract-ocr tesseract-ocr-deu libtesseract-dev
+fi
+
 # 3. Update Dependencies
 echo "[3/3] Aktualisiere Abhängigkeiten (Python Packages)..."
 if [ -d "venv" ]; then
