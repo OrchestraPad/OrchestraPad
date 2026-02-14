@@ -642,12 +642,13 @@
                 </button>
             `;
 
+            // If in a setlist, add "remove from setlist" button at the start
             if (song.entry_id) {
                 headerActions = `
                     <button class="icon-btn" style="color: var(--md-sys-color-error);" onclick="removeFromSetlist(event, ${song.entry_id})">
                         <svg width="20" height="20"><use href="#icon-delete" /></svg>
                     </button>
-                `;
+                ` + headerActions;
             }
 
             div.innerHTML = `

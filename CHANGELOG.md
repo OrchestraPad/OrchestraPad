@@ -2,6 +2,10 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.4] - 2026-02-14
+### Behoben
+- **Löschen-Button sichtbar**: Buttons werden jetzt korrekt in allen Ansichten angezeigt (Library und Setlists).
+
 ## [1.2.3] - 2026-02-14
 ### Hinzugefügt
 - **Force Update Script**: `force_update.sh` stoppt den Service, macht Hard Reset und startet neu, um Template-Updates zu erzwingen.
