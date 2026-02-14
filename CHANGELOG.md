@@ -2,6 +2,11 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.2.6] - 2026-02-14
+### Behoben
+- **JS Fehler**: `loadSongs is not defined` behoben (ersetzt durch `location.reload`).
+- **Button-Logik**: In der Konzertmappen-Ansicht wird nun nur noch der "Aus Mappe entfernen" Button angezeigt, um versehentliches Löschen der Datei zu verhindern.
+
 ## [1.2.5] - 2026-02-14
 ### Behoben
 - **Löschen-Button in allen Ansichten**: Der Löschen-Button wird nun auch beim ersten Laden der Bibliothek ("Alle Noten") korrekt angezeigt.

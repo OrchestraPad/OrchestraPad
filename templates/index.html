@@ -648,13 +648,13 @@
                 </button>
             `;
 
-            // If in a setlist, add "remove from setlist" button at the start
+            // If in a setlist, ONLY show the "remove from setlist" button
             if (song.entry_id) {
                 headerActions = `
-                    <button class="icon-btn" style="color: var(--md-sys-color-error);" onclick="removeFromSetlist(event, ${song.entry_id})">
+                    <button class="icon-btn" style="color: var(--md-sys-color-error);" title="Aus Mappe entfernen" onclick="removeFromSetlist(event, ${song.entry_id})">
                         <svg width="20" height="20"><use href="#icon-delete" /></svg>
                     </button>
-                ` + headerActions;
+                `;
             }
 
             div.innerHTML = `
@@ -676,13 +676,8 @@
             container.innerHTML = '';
             allSetlists.forEach(list => {
                 const item = document.createElement('div');
-                item.className = 'setlist-item';
-                item.style.background = 'var(--md-sys-color-primary-container)';
-                item.style.marginBottom = '8px';
-                item.innerHTML = `
-                    <svg width="20" height="20" style="margin-right:12px"><use href="#icon-add"/></svg>
-                    <span>Zu "${list.name}"</span>
-                `;
+                item.className = 'setlist-option-item';
+                item.innerText = list.name;
                 item.onclick = () => addToSetlist(list.id, songId);
                 container.appendChild(item);
             });
@@ -691,15 +686,12 @@
 
         function closeSetlistModal() { document.getElementById('setlist-modal').style.display = 'none'; }
 
-        function addToSetlist(listId, songId) {
-            fetch('/setlist/' + listId, {
+        function addToSetlist(setlistId, songId) {
+            fetch('/setlist_entry', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ song_id: songId })
-            }).then(() => {
-                closeSetlistModal();
-                loadSetlists();
-            });
+                body: JSON.stringify({ setlist_id: setlistId, song_id: songId })
+            }).then(() => closeModal());
         }
 
         function removeFromSetlist(e, entryId) {
@@ -717,7 +709,7 @@
                 .then(r => r.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        loadSongs(); // Refresh the library
+                        location.reload(); // Refresh the library
                     } else {
                         alert('Fehler beim Löschen: ' + (data.message || 'Unbekannter Fehler'));
                     }
