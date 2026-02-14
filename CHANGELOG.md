@@ -2,7 +2,12 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
-## [1.3.0] - 2026-02-14
+## v1.3.1 (2026-02-14)
+- Fix: Critical bug fixed (Black Screen on Raspberry Pi)
+- Security: OCR Installation script improved
+- System: Update scripts improved for Raspberry Pi
+
+## v1.3.0 (2026-02-14)
 ### Neu
 - **Smart OCR (Stimmen-Trainer)**: Man kann jetzt im Viewer oben einen Bereich markieren, wo der Instrumentenname steht. Das System scannt dann **nur** diesen Bereich auf allen Seiten. Das ist viel schneller und genauer als der Volltext-Scan.
 - **Backend**: Neue Schnittstellen für Bildverarbeitung und Texterkennung (`pdf2image`, `tesseract`) integriert.
