@@ -2,6 +2,12 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
+## [1.1.1] - 2026-02-14
+### Hinzugefügt
+- **Autostart-Assistent**: `setup_pi.sh` fragt nun nach der Bildschirmdrehung (Portrait/Landscape).
+- **Stabilerer Kiosk-Modus**: Wartezeit beim Start erhöht, um sicherzustellen, dass der Server bereit ist.
+- **Persistenz**: Einmal konfiguriert, bleibt die Drehung auch nach Neustarts erhalten.
+
 ## [1.1.0] - 2026-02-14
 ### Hinzugefügt
 - **Rebranding**: Programmname von "Notenmappe" zu "**OrchestraPad**" geändert.

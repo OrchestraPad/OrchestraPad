@@ -41,14 +41,32 @@ mkdir -p instance
 mkdir -p usb_drive
 
 # --- 4. Configure Autostart & Desktop Icon ---
-echo "[4/4] Konfiguriere Autostart & Desktop-Icon..."
+echo "[4/4] Konfiguriere Autostart & Display..."
+
+# Ask for rotation (only if interactive)
+ROTATION_CMD=""
+if [ -t 0 ]; then
+    echo "Soll der Bildschirm für den Notenständer gedreht werden (Hochformat)?"
+    echo "1) Nein (Standard)"
+    echo "2) Ja (90 Grad - Portrait)"
+    read -p "Auswahl [1-2]: " ROT_CHOICE
+    if [ "$ROT_CHOICE" == "2" ]; then
+        # Try to detect compositor (Wayland/X11)
+        if [ "$XDG_SESSION_TYPE" == "wayland" ] || [ -n "$WAYLAND_DISPLAY" ]; then
+            ROTATION_CMD="wlr-randr --output HDMI-A-1 --transform 90 && "
+        else
+            ROTATION_CMD="xrandr --output HDMI-1 --rotate right && "
+        fi
+        echo "   -> Rotation aktiviert."
+    fi
+fi
 
 # Create the .desktop content
 DESKTOP_CONTENT="[Desktop Entry]
 Type=Application
 Name=OrchestraPad
 Icon=video-display
-Exec=bash -c \"cd $APP_DIR && ./venv/bin/python3 app.py & sleep 8 && $BROWSER_CMD --kiosk --incognito http://localhost:5000\"
+Exec=bash -c \"$ROTATION_CMD cd $APP_DIR && ./venv/bin/python3 app.py & sleep 10 && $BROWSER_CMD --kiosk --incognito http://localhost:5000\"
 Terminal=false"
 
 # 1. Autostart
@@ -65,7 +83,7 @@ echo "================================================"
 echo "   FERTIG!"
 echo "================================================"
 echo "1. Es liegt nun ein Icon 'OrchestraPad' auf deinem Desktop."
-echo "2. Doppelklick darauf startet den Server und den Browser."
-echo "3. Falls das OS fragt: Wähle 'Execute' (Ausführen)."
+echo "2. Der Autostart wurde konfiguriert (Kiosk-Modus)."
+echo "   WICHTIG: Sollte der Browser zu frueh starten, erhoehe 'sleep' im Desktop-Icon."
 echo ""
 echo "Bitte starte deinen Pi jetzt neu: sudo reboot"
