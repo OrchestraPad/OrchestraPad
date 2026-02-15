@@ -2,6 +2,12 @@ import os
 from flask import Flask, render_template, send_from_directory, jsonify, request
 from models import db, Song, Setlist, SetlistSong
 from pypdf import PdfReader
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image
+import difflib
+import re
+import shutil
 
 # Configuration
 STORAGE_PATH = os.path.join(os.getcwd(), 'usb_drive')
@@ -18,6 +24,64 @@ VERSION = "unknown"
 if os.path.exists('VERSION'):
     with open('VERSION', 'r') as f:
         VERSION = f.read().strip()
+
+# --- CONSTANTS & MAPPINGS ---
+INSTRUMENT_MAPPING = {
+    # Woodwinds
+    "piccolo": "Piccolo", "picc": "Piccolo", "pikkolo": "Piccolo",
+    "flute": "Flöte", "flöte": "Flöte", "floete": "Flöte", "fl": "Flöte",
+    "oboe": "Oboe", "ob": "Oboe",
+    "english horn": "Englischhorn", "englischhorn": "Englischhorn", "e. horn": "Englischhorn",
+    "clarinet": "Klarinette", "klarinette": "Klarinette", "kl": "Klarinette", "cl": "Klarinette",
+    "bass clarinet": "Bassklarinette", "bassklarinette": "Bassklarinette", "b. kl": "Bassklarinette",
+    "bassoon": "Fagott", "fagott": "Fagott", "fag": "Fagott", "bsn": "Fagott",
+    "saxophone": "Saxophon", "saxophon": "Saxophon", "sax": "Saxophon",
+    "alto sax": "Altsaxophon", "altsax": "Altsaxophon", "a. sax": "Altsaxophon",
+    "tenor sax": "Tenorsaxophon", "tenorsax": "Tenorsaxophon", "t. sax": "Tenorsaxophon",
+    "baritone sax": "Baritonsaxophon", "barisax": "Baritonsaxophon", "b. sax": "Baritonsaxophon",
+    
+    # Brass
+    "cornet": "Kornett", "kornett": "Kornett", "cnt": "Kornett",
+    "trumpet": "Trompete", "trompete": "Trompete", "trp": "Trompete", "tpt": "Trompete",
+    "flugelhorn": "Flügelhorn", "flügelhorn": "Flügelhorn", "fluegelhorn": "Flügelhorn",
+    "horn": "Horn", "french horn": "Horn", "hrn": "Horn", "cor": "Horn", "corno": "Horn",
+    "trombone": "Posaune", "posaune": "Posaune", "pos": "Posaune", "tbn": "Posaune",
+    "bass trombone": "Bassposaune", "bassposaune": "Bassposaune",
+    "baritone": "Bariton", "bariton": "Bariton",
+    "euphonium": "Euphonium", "tenorhorn": "Tenorhorn",
+    "tuba": "Tuba", "bass": "Tuba", "basses": "Tuba",
+    "sousaphone": "Sousaphon",
+
+    # Percussion
+    "drums": "Schlagzeug", "drum set": "Schlagzeug", "schlagzeug": "Schlagzeug", "drum": "Schlagzeug",
+    "percussion": "Percussion", "perc": "Percussion", "batterie": "Percussion",
+    "pauken": "Pauken", "timpani": "Pauken", "pk": "Pauken", "timp": "Pauken",
+    "mallets": "Mallets", "glockenspiel": "Glockenspiel",
+    "xylophone": "Xylophon", "xylophon": "Xylophon", 
+    "vibraphone": "Vibraphon", "vibraphon": "Vibraphon", 
+
+    # Strings/Others
+    "violin": "Violine", "violine": "Violine", "vl": "Violine", "vln": "Violine", "geige": "Violine",
+    "viola": "Viola", "bratsche": "Viola", "vla": "Viola",
+    "cello": "Cello", "violoncello": "Cello", "vc": "Cello",
+    "contrabass": "Kontrabass", "double bass": "Kontrabass", "kb": "Kontrabass", "db": "Kontrabass",
+    "piano": "Klavier", "klavier": "Klavier", "pno": "Klavier",
+    "keyboard": "Keyboard", "keys": "Keyboard",
+    "guitar": "Gitarre", "gitarre": "Gitarre",
+    "harp": "Harfe", "harfe": "Harfe",
+    
+    # Meta
+    "director": "Direktion", "conductor": "Direktion", "cond": "Direktion",
+    "score": "Partitur", "partitur": "Partitur"
+}
+
+KEY_MAPPING = {
+    "bb": "in B", "b": "in B", 
+    "eb": "in Es", "es": "in Es", 
+    "c": "in C", 
+    "f": "in F",
+    "ab": "in As"
+}
 
 @app.context_processor
 def inject_version():
@@ -41,53 +105,6 @@ def analyze_parts(song_id):
         reader = PdfReader(pdf_path)
         parts = {} # "Instrument Name" -> [page_num, ...]
 
-        # 1. Definitions
-        instruments_map = {
-            # Woodwinds
-            "piccolo": "Piccolo",
-            "flute": "Flöte", "flöte": "Flöte", "floete": "Flöte",
-            "oboe": "Oboe",
-            "clarinet": "Klarinette", "klarinette": "Klarinette",
-            "bassoon": "Fagott", "fagott": "Fagott",
-            "saxophone": "Saxophon", "saxophon": "Saxophon", "sax": "Saxophon",
-            "alto sax": "Altsaxophon", "altsax": "Altsaxophon",
-            "tenor sax": "Tenorsaxophon", "tenorsax": "Tenorsaxophon",
-            "baritone sax": "Baritonsaxophon", "barisax": "Baritonsaxophon",
-            
-            # Brass
-            "cornet": "Kornett", "kornett": "Kornett",
-            "trumpet": "Trompete", "trompete": "Trompete", 
-            "flugelhorn": "Flügelhorn", "flügelhorn": "Flügelhorn", "fluegelhorn": "Flügelhorn",
-            "horn": "Horn", "french horn": "Horn",
-            "trombone": "Posaune", "posaune": "Posaune",
-            "baritone": "Bariton", "bariton": "Bariton",
-            "euphonium": "Euphonium", "tenorhorn": "Tenorhorn",
-            "tuba": "Tuba", "bass": "Tuba", "basses": "Tuba",
-            "sousaphone": "Sousaphon",
-
-            # Percussion
-            "drums": "Schlagzeug", "drum set": "Schlagzeug", "schlagzeug": "Schlagzeug",
-            "percussion": "Percussion", "pauken": "Pauken", "timpani": "Pauken",
-            "mallets": "Mallets", "glockenspiel": "Glockenspiel",
-            
-            # Strings/Other
-            "violin": "Violine", "viola": "Viola", "cello": "Cello", "contrabass": "Kontrabass",
-            "piano": "Klavier", "keyboard": "Keyboard", "guitar": "Gitarre",
-            "director": "Direktion", "conductor": "Direktion", "score": "Partitur", "partitur": "Partitur"
-        }
-
-        keys_map = {
-            "bb": "in B", "b": "in B", 
-            "eb": "in Es", "es": "in Es", 
-            "c": "in C", 
-            "f": "in F",
-            "ab": "in As" # Less common but possible
-        }
-        
-        # Regex for numbers: "1", "1.", "I", "1st"
-        # Match standalone numbers or suffix numbers
-        # We'll just look for these tokens in the line
-        
         for i, page in enumerate(reader.pages):
             text = page.extract_text()
             if not text: continue
@@ -99,80 +116,11 @@ def analyze_parts(song_id):
             found_on_page = []
 
             for line in header_lines:
-                line_lower = line.lower()
-                
-                # Check for instruments
-                detected_inst = None
-                longest_match = 0
-                
-                for key, val in instruments_map.items():
-                    if key in line_lower:
-                        # Prefer longer matches (e.g. "Tenor Sax" over "Sax")
-                        if len(key) > longest_match:
-                            longest_match = len(key)
-                            detected_inst = val
-                            
-                if detected_inst:
-                    # We found an instrument! Now look for details in the SAME line.
-                    
-                    # 1. Number detection
-                    number = ""
-                    # Look for explicit "1", "2", "3", "4"
-                    # Or "I", "II", "III"
-                    # Or "1st", "2nd"
-                    
-                    # Simple token check is safer than regex sometimes
-                    tokens = line_lower.replace('.', ' ').replace(',', ' ').split()
-                    
-                    if '1' in tokens or '1st' in tokens or 'i' in tokens: number = "1"
-                    elif '2' in tokens or '2nd' in tokens or 'ii' in tokens: number = "2"
-                    elif '3' in tokens or '3rd' in tokens or 'iii' in tokens: number = "3"
-                    elif '4' in tokens or '4th' in tokens or 'iv' in tokens: number = "4"
-                    
-                    # 2. Key detection
-                    key_sig = ""
-                    for k_key, k_val in keys_map.items():
-                         # Check strict tokens "in Bb" or just "Bb" if typical?
-                         # "Trumpet in Bb" -> "in bb" found
-                         # "Flute C" -> "c" found. 
-                         # Careful with single letters. "in C" is safe. "C" might be title.
-                         
-                         pat_in = f"in {k_key}"
-                         if pat_in in line_lower:
-                             key_sig = k_val
-                             break
-                         
-                         # Special cases like "Eb Horn", "Bb Trumpet" (Prefix)
-                         pat_pre = f"{k_key} {detected_inst.lower()}"
-                         if pat_pre in line_lower:
-                             key_sig = k_val
-                             break
-                         
-                         # "Trumpet Bb" (Suffix)
-                         pat_suf = f"{detected_inst.lower()} {k_key}"
-                         if pat_suf in line_lower:
-                             key_sig = k_val
-                             break
-                    
-                    # Build Part Name
-                    # Standard Format: "Instrument [Number] [Key]"
-                    # E.g. "Trompete 1 in B", "Flöte in C"
-                    
-                    full_name = detected_inst
-                    if number:
-                        full_name += f" {number}"
-                    if key_sig:
-                        full_name += f" {key_sig}"
-                        
-                    found_on_page.append(full_name)
-            
-            # If nothing specific found, maybe mark as "Unbekannt" or skip?
-            # Better skip if nothing confident found to avoid "Unbekannt" cluttering 
-            # if it's just a blank page or intro. 
-            # But the user needs to see every page?
-            # The "All" filter handles showing everything. 
-            # The parts filter is for specific selection.
-            # So only add if we confirm something.
+                # Use the unified helper
+                # We expect high confidence for automatic analysis since we scan many lines
+                result = identify_instrument_from_text(line)
+                if result['confidence'] >= 0.8: # Strict threshold for auto-detection
+                    found_on_page.append(result['text'])
             
             if not found_on_page:
                 # If page has plenty of text but no instrument, might be Score?
@@ -200,28 +148,7 @@ def run_ocr_analysis(song_id):
     if not page_texts:
         return jsonify({'error': 'No text provided'}), 400
         
-    # Re-use the regex logic but with provided text instead of PDF extraction
     parts = {}
-    
-    # 1. Definitions (Same as in analyze_parts)
-    instruments_map = {
-        "piccolo": "Piccolo", "flute": "Flöte", "flöte": "Flöte", "floete": "Flöte",
-        "oboe": "Oboe", "clarinet": "Klarinette", "klarinette": "Klarinette",
-        "bassoon": "Fagott", "fagott": "Fagott", "saxophone": "Saxophon", "saxophon": "Saxophon",
-        "cornet": "Kornett", "kornett": "Kornett", "trumpet": "Trompete", "trompete": "Trompete", 
-        "flugelhorn": "Flügelhorn", "flügelhorn": "Flügelhorn", "fluegelhorn": "Flügelhorn",
-        "horn": "Horn", "french horn": "Horn", "trombone": "Posaune", "posaune": "Posaune",
-        "baritone": "Bariton", "bariton": "Bariton", "euphonium": "Euphonium", "tenorhorn": "Tenorhorn",
-        "tuba": "Tuba", "bass": "Tuba", "basses": "Tuba", "drums": "Schlagzeug",
-        "percussion": "Percussion", "pauken": "Pauken", "timpani": "Pauken",
-        "mallets": "Mallets", "glockenspiel": "Glockenspiel",
-        "director": "Direktion", "conductor": "Direktion", "score": "Partitur", "partitur": "Partitur"
-    }
-
-    keys_map = {
-        "bb": "in B", "b": "in B", "eb": "in Es", "es": "in Es", 
-        "c": "in C", "f": "in F", "ab": "in As"
-    }
     
     # Process each page
     for p_key, text in page_texts.items():
@@ -233,39 +160,13 @@ def run_ocr_analysis(song_id):
         if not text: continue
         
         found_on_page = []
-        lines = text.lower().split('\n')
+        lines = text.split('\n')
         
         for line in lines:
-            detected_inst = None
-            longest_match = 0
-            
-            for key, val in instruments_map.items():
-                if key in line:
-                    if len(key) > longest_match:
-                        longest_match = len(key)
-                        detected_inst = val
-            
-            if detected_inst:
-                number = ""
-                tokens = line.replace('.', ' ').replace(',', ' ').split()
-                if '1' in tokens or '1st' in tokens or 'i' in tokens: number = "1"
-                elif '2' in tokens or '2nd' in tokens or 'ii' in tokens: number = "2"
-                elif '3' in tokens or '3rd' in tokens or 'iii' in tokens: number = "3"
-                elif '4' in tokens or '4th' in tokens or 'iv' in tokens: number = "4"
-                
-                key_sig = ""
-                for k_key, k_val in keys_map.items():
-                     if f"in {k_key}" in line:
-                         key_sig = k_val
-                         break
-                     if f"{k_key} {detected_inst.lower()}" in line or f"{detected_inst.lower()} {k_key}" in line:
-                         key_sig = k_val
-                         break
-                
-                full_name = detected_inst
-                if number: full_name += f" {number}"
-                if key_sig: full_name += f" {key_sig}"
-                found_on_page.append(full_name)
+            # Use unified helper
+            result = identify_instrument_from_text(line)
+            if result['confidence'] >= 0.8:
+                found_on_page.append(result['text'])
         
         for part_name in set(found_on_page):
             if part_name not in parts:
@@ -587,10 +488,6 @@ def system_control():
 
 @app.route('/scan_part_region', methods=['POST'])
 def scan_part_region():
-    import pytesseract
-    from pdf2image import convert_from_path
-    from PIL import Image
-    
     data = request.json
     song_id = data.get('song_id')
     page_num = data.get('page', 1) - 1 # 0-indexed
@@ -638,93 +535,113 @@ def scan_part_region():
         # --psm 6: Assume a single uniform block of text.
         text = pytesseract.image_to_string(bw, lang='deu+eng', config='--psm 6')
         
+        
         # --- SMART OCR POST-PROCESSING ---
-        original_text = text.strip()
-        corrected_text = original_text
+        # Delegate to helper
+        result = identify_instrument_from_text(text)
         
-        # Define known instruments (German/English/Italian/French common terms)
-        KNOWN_INSTRUMENTS = [
-            # Woodwinds
-            "Flöte", "Flute", "Flauto", "Piccolo", "Pikkolo", "Oboe", "Englischhorn", "English Horn",
-            "Klarinette", "Clarinet", "Clarinetto", "Bassklarinette", "Bass Clarinet", "Fagott", "Bassoon",
-            "Saxophon", "Saxophone", "Altsaxophon", "Tenorsaxophon", "Baritonsaxophon",
-            # Brass
-            "Horn", "Corno", "Trompete", "Trumpet", "Tromba", "Kornett", "Cornet", "Flügelhorn", "Flugelhorn",
-            "Posaune", "Trombone", "Bassposaune", "Tuba", "Bass", "Euphonium", "Bariton",
-            # Strings
-            "Violine", "Violin", "Geige", "Viola", "Bratsche", "Cello", "Violoncello", "Kontrabass", "Double Bass",
-            # Percussion
-            "Pauken", "Timpani", "Schlagzeug", "Percussion", "Drums", "Glockenspiel", "Xylophon", "Vibraphon",
-            # Keyboards/Other
-            "Klavier", "Piano", "Harfe", "Harp", "Gitarre", "Guitar", "Direktion", "Conductor", "Score", "Partitur"
-        ]
-        
-        # 1. Clean up text (remove special chars, excess whitespace)
-        import re
-        # Remove non-alphanumeric except spaces, dots, dashes
-        clean_text = re.sub(r'[^\w\s\.\-]', '', original_text)
-        
-        # 2. Try to find instrument name in text
-        import difflib
-        
-        found_matches = []
-        
-        # Check line by line (or word chunks)
-        lines = clean_text.split('\n')
-        final_instrument = ""
-        final_number = ""
-        
-        best_ratio = 0.0
-        best_match = ""
-        
-        for line in lines:
-            words = line.split()
-            # Check single words and pairs (e.g. "Tenor Sax")
-            candidates = words + [' '.join(words[i:i+2]) for i in range(len(words)-1)]
+        return jsonify({
+            'status': 'success', 
+            'text': result['text'], 
+            'original': text,
+            'confidence': result['confidence']
+        })
             
-            for word in candidates:
-                # Direct fuzzy match against known list
-                matches = difflib.get_close_matches(word, KNOWN_INSTRUMENTS, n=1, cutoff=0.55)
-                if matches:
-                    # Calculate ratio to find the "best" match
-                    ratio = difflib.SequenceMatcher(None, word.lower(), matches[0].lower()).ratio()
-                    if ratio > best_ratio:
-                        best_ratio = ratio
-                        best_match = matches[0]
-                        
-            # Check for numbers (1, 2, 3, I, II, III, 1st, 2nd)
-            # Simple regex for numbers
-            num_match = re.search(r'(\d+|I{1,3})', line)
-            if num_match:
-                final_number = num_match.group(1)
-
-        if best_match:
-            # Reconstruct corrected name
-            corrected_text = best_match
-            if final_number:
-                corrected_text += " " + final_number
-            
-            # Logic for generic matches (e.g. "arinete" -> "Clarinet")
-            # The fuzzy matcher handles this well usually.
-            
-            return jsonify({
-                'status': 'success', 
-                'text': corrected_text, 
-                'original': original_text,
-                'confidence': best_ratio
-            })
-            
-        # Fallback if no specific instrument found: return raw text but structured
-        return jsonify({'status': 'success', 'text': original_text})
-        
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
+def identify_instrument_from_text(text):
+    # Clean text
+    clean_text = re.sub(r'[^\w\s\.\-\(\)]', ' ', text) # Allow brackets
+    lines = clean_text.split('\n')
+    
+    candidates = [] # (text, score)
+
+    for line in lines:
+        line = line.strip()
+        if not line or len(line) < 3: continue
+        
+        # Filter out obvious titles/credits
+        line_lower = line.lower()
+        if any(x in line_lower for x in ['music by', 'arranged by', 'composed by', 'lyrics by', 'concerto', 'symphony', 'medley', 'theme from']):
+            continue
+
+        # Look for Instrument Matches
+        words = line.split()
+        # Generating n-grams up to 3 words
+        grams = words + [' '.join(words[i:i+2]) for i in range(len(words)-1)] + [' '.join(words[i:i+3]) for i in range(len(words)-2)]
+        
+        best_line_inst = ""
+        best_line_score = 0.0
+        
+        for gram in grams:
+            # Check for exact matches in keys (fast)
+            gram_lower = gram.lower()
+            if gram_lower in INSTRUMENT_MAPPING:
+                # Exact key match (e.g. "flute")
+                best_line_score = 1.0
+                best_line_inst = INSTRUMENT_MAPPING[gram_lower]
+                break
+                
+            # Fuzzy match against keys
+            matches = difflib.get_close_matches(gram_lower, INSTRUMENT_MAPPING.keys(), n=1, cutoff=0.7)
+            if matches:
+                ratio = difflib.SequenceMatcher(None, gram_lower, matches[0]).ratio()
+                if ratio > best_line_score:
+                    best_line_score = ratio
+                    best_line_inst = INSTRUMENT_MAPPING[matches[0]]
+        
+        if best_line_inst:
+            # Check for Number (1, 2, 3, I, II, III, 1st, 2nd)
+            
+            # 1. Arabic digits
+            num_match = re.search(r'\b(\d)\b', line)
+            number = ""
+            if num_match:
+                number = num_match.group(1)
+            else:
+                # 2. Roman numerals (I, II, III, IV) - strict boundary
+                rom_match = re.search(r'\b(I|II|III|IV)\b', line)
+                if rom_match:
+                    number = rom_match.group(1)
+                else:
+                    # 3. Ordinals (1st, 2nd)
+                    ord_match = re.search(r'\b(\d)(st|nd|rd|th)\b', line.lower())
+                    if ord_match:
+                        number = ord_match.group(1)
+
+            # Check for Key
+            key_sig = ""
+            for k_key, k_val in KEY_MAPPING.items():
+                if f"in {k_key}" in line_lower: 
+                    key_sig = k_val; break
+                if f"in {k_key.capitalize()}" in line: # Case sensitive fallback
+                     key_sig = k_val; break
+                # Suffix/Prefix check
+                if f" {k_key} " in line_lower: # surrounded by spaces
+                     pass # Too risky? " in B " is better.
+
+            # Construct Result
+            full_name = best_line_inst
+            if number:
+                full_name += " " + number
+                best_line_score += 0.2 
+            if key_sig:
+                full_name += " " + key_sig
+                best_line_score += 0.1
+            
+            candidates.append({'text': full_name, 'confidence': best_line_score})
+
+    if not candidates:
+        return {'text': text.strip(), 'confidence': 0.0}
+    
+    # Sort by confidence
+    candidates.sort(key=lambda x: x['confidence'], reverse=True)
+    return candidates[0]
+
+
 @app.route('/scan_all_pages_region', methods=['POST'])
 def scan_all_pages_region():
-    import pytesseract
-    from pdf2image import convert_from_path
-    
     data = request.json
     song_id = data.get('song_id')
     box = data.get('box')
@@ -735,25 +652,54 @@ def scan_all_pages_region():
     results = {}
     
     try:
-        # Convert all pages (memory intensive, maybe do in chunks?)
-        # For Pi, we should probably do one by one or small chunks
-        # But pdf2image allows iterating?
-        # Let's try converting all for now, assuming PDF size isn't massive
-        images = convert_from_path(pdf_path)
+    try:
+        # Optimize: Process page by page to save memory
+        reader = PdfReader(pdf_path)
+        num_pages = len(reader.pages)
         
-        for i, img in enumerate(images):
+        for i in range(num_pages):
+            # Convert single page (1-based index)
+            # dpi=200 is usually enough for instrument headers, faster than 400
+            pages = convert_from_path(pdf_path, first_page=i+1, last_page=i+1, dpi=300)
+            if not pages: continue
+            
+            img = pages[0]
             img_w, img_h = img.size
+            
             x = int(box['x'] * img_w / 100)
             y = int(box['y'] * img_h / 100)
             w = int(box['w'] * img_w / 100)
             h = int(box['h'] * img_h / 100)
             
-            cropped = img.crop((x, y, x+w, y+h))
-            text = pytesseract.image_to_string(cropped, lang='deu+eng', config='--psm 6').strip()
+            # Safety bounds
+            x = max(0, x); y = max(0, y)
+            w = min(img_w - x, w); h = min(img_h - y, h)
             
-            # Simple heuristic: if empty, maybe it's same as previous page?
-            # Or just return raw text
-            results[i+1] = text
+            # Check if crop is valid
+            if w <= 0 or h <= 0: continue
+            
+            cropped = img.crop((x, y, x+w, y+h))
+            
+            # Reuse same preprocessing steps
+            gray = cropped.convert('L')
+            bw = gray.point(lambda x: 0 if x < 140 else 255, '1')
+            
+            text = pytesseract.image_to_string(bw, lang='deu+eng', config='--psm 6')
+            
+            # Use Helper
+            analysis = identify_instrument_from_text(text)
+            
+            # Store result by page number (1-based)
+            # Only store if we found something or text is not empty?
+            # User wants to see results for all pages likely
+            results[i+1] = analysis['text']
+            
+            # Explicit cleanup
+            del pages
+            del img
+            del cropped
+            del gray
+            del bw
             
         return jsonify({'status': 'success', 'results': results})
         
