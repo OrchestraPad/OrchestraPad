@@ -504,6 +504,8 @@ def scan_part_region():
             
         img = images[0]
         img_w, img_h = img.size
+        print(f"DEBUG_OCR: song={song_id} page={page_num} box={box} img_size={img.size}")
+        
         
         
         # Calculate crop coordinates with SAFETY PADDING (2%)
