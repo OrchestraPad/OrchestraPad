@@ -64,6 +64,14 @@ if [ -d "venv" ]; then
     # 4. Database Migration
     echo "[4/4] Prüfe Datenbank-Struktur (Migration)..."
     python migrate_db.py
+    
+    # 5. Asset Checks
+    echo "[5/5] Prüfe Verzeichnisse..."
+    if [ ! -d "static/images" ]; then
+        mkdir -p static/images
+        echo "Ordner static/images erstellt."
+    fi
+
 else
     # System-wide install (Raspberry Pi default)
     pip3 install --upgrade pip setuptools wheel --break-system-packages

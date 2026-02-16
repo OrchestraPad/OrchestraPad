@@ -116,6 +116,14 @@
             margin: 0;
             font-weight: 400;
             color: var(--md-sys-color-primary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .top-bar h1 img {
+            height: 40px;
+            width: auto;
         }
 
         .actions-row {
@@ -414,7 +422,10 @@
         <!-- Main Content -->
         <div class="main-content">
             <div class="top-bar">
-                <h1 id="view-title">Alle Noten</h1>
+                <h1 id="view-title">
+                    <img src="/static/images/logo.png" alt="Logo" onerror="this.style.display='none'">
+                    <span>Alle Noten</span>
+                </h1>
                 <div class="actions-row">
                     <select id="sort-select" onchange="sortLibrary()"
                         style="padding: 10px; border-radius: 8px; border: 1px solid var(--md-sys-color-outline); background: white;">

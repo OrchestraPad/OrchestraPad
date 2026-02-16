@@ -19,3 +19,19 @@ noten sven/
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary Scripts
+reproduce_gdown.py
+
+# Flutter / Android
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+android_app/build/
+android_app/.dart_tool/
+android_app/.idea/
+android_app/android/.gradle/
+android_app/android/local.properties
+

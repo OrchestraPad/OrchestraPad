@@ -2,7 +2,12 @@
 
 Alle wichtigen Änderungen an diesem Projekt werden in dieser Datei festgehalten.
 
-## v1.3.1 (2026-02-14)
+## v1.3.2 (2026-02-16)
+### Hinzugefügt
+- **Branding**: Neues Vereins-Logo ("OrchestraPad") in der Titelleiste und im Viewer integriert.
+- **Icon**: App-Icon für Android hinzugefügt.
+
+## v1.2.12 (2026-02-14)
 - Fix: Critical bug fixed (Black Screen on Raspberry Pi)
 - Security: OCR Installation script improved
 - System: Update scripts improved for Raspberry Pi

@@ -39,6 +39,7 @@ pip install -r requirements.txt
 # Create necessary directories
 mkdir -p instance
 mkdir -p usb_drive
+mkdir -p static/images
 
 # --- 4. Configure Autostart & Display ---
 echo "[4/4] Konfiguriere Autostart & Display..."
