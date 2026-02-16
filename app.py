@@ -228,30 +228,48 @@ def scan_library():
     # Check for Cloud Folder (e.g. mounted Google Drive via rclone or gdown sync)
     cloud_path = os.path.join(os.path.expanduser("~"), "CloudNoten")
     
-    # Check if a Cloud Link is configured (gdown)
-    config_path = 'config.json'
-    if os.path.exists(config_path):
-        try:
+    # Cloud Sync Logic
+    try:
+        # Use absolute path for config
+        config_path = os.path.join(app.root_path, 'config.json')
+        print(f"DEBUG: Looking for config at {config_path}")
+        
+        if os.path.exists(config_path):
             with open(config_path, 'r') as f:
                 config = json.load(f)
                 cloud_link = config.get('cloud_link')
                 
+                print(f"DEBUG: Found cloud_link: {cloud_link}")
+                
                 if cloud_link:
                     debug_info.append("Starting Cloud Sync (gdown)...")
                     try:
+                        # Ensure folder exists
                         if not os.path.exists(cloud_path):
                             os.makedirs(cloud_path)
                             
                         # Sync using gdown
                         if gdown:
-                            gdown.download_folder(url=cloud_link, output=cloud_path, quiet=True, use_cookies=False)
+                            print(f"DEBUG: Executing gdown download to {cloud_path}")
+                            # output needs to be the folder itself or parent? 
+                            # gdown.download_folder downloads CONTENTS into output
+                            gdown.download_folder(url=cloud_link, output=cloud_path, quiet=False, use_cookies=False)
                             debug_info.append("Cloud Sync completed successfully.")
                         else:
-                             debug_info.append("Error: gdown module missing. Cannot sync.")
+                             msg = "Error: gdown module missing. Cannot sync."
+                             print(f"DEBUG: {msg}")
+                             debug_info.append(msg)
                     except Exception as e:
-                        debug_info.append(f"Cloud Sync failed: {str(e)}")
-        except Exception as e:
-            debug_info.append(f"Config load error: {e}")
+                        msg = f"Cloud Sync failed: {str(e)}"
+                        print(f"DEBUG: {msg}")
+                        debug_info.append(msg)
+                else:
+                    print("DEBUG: No cloud_link in config.")
+        else:
+            print(f"DEBUG: Config file not found at {config_path}")
+    except Exception as e:
+        debug_info.append(f"Config load error: {e}")
+        print(f"DEBUG: Config error: {e}")
 
     if os.path.exists(cloud_path):
         scan_paths.append(cloud_path)
@@ -837,17 +855,18 @@ def save_cloud_link():
     data = request.json
     link = data.get('link')
     
+    config_path = os.path.join(app.root_path, 'config.json')
     config = {}
-    if os.path.exists('config.json'):
+    if os.path.exists(config_path):
         try:
-            with open('config.json', 'r') as f:
+            with open(config_path, 'r') as f:
                 config = json.load(f)
         except:
             pass
             
     config['cloud_link'] = link
     
-    with open('config.json', 'w') as f:
+    with open(config_path, 'w') as f:
         json.dump(config, f)
         
     return jsonify({'status': 'success'})
@@ -856,9 +875,10 @@ def save_cloud_link():
 def get_cloud_link():
     """Get the saved Google Drive link."""
     link = ""
-    if os.path.exists('config.json'):
+    config_path = os.path.join(app.root_path, 'config.json')
+    if os.path.exists(config_path):
         try:
-            with open('config.json', 'r') as f:
+            with open(config_path, 'r') as f:
                 config = json.load(f)
                 link = config.get('cloud_link', "")
         except:
