@@ -242,6 +242,12 @@
             gap: 8px;
             position: relative;
             overflow: hidden;
+            margin-bottom: 20px;
+            /* Spacing between items in list mode */
+            min-height: 150px;
+            /* Prevent squashing */
+            flex-shrink: 0;
+            /* Prevent shrinking in flex container */
         }
 
         .page-thumb {
@@ -703,14 +709,12 @@
             const modal = document.getElementById('page-selector-modal');
             const grid = document.getElementById('page-grid');
             grid.innerHTML = '';
-            // Single column layout for better visibility
-            // Ensure full width and vertical scrolling
-            grid.style.gridTemplateColumns = '1fr';
-            grid.style.maxWidth = '100%';
+            grid.style.display = 'block'; /* List mode, not grid */
             grid.style.width = '100%';
             grid.style.margin = '0 auto';
             grid.style.flex = '1'; /* Take remaining vertical space for scrolling */
             grid.style.minHeight = '0'; /* Critical for proper flex scrolling */
+            grid.style.overflowY = 'auto'; /* Ensure scrollable */
 
             let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
             for (let i = 1; i <= pdfDoc.numPages; i++) {
