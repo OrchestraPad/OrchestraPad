@@ -325,6 +325,14 @@ def delete_song(song_id):
             os.remove(file_path)
         except Exception as e:
             return jsonify({'status': 'error', 'message': f'Failed to delete file: {str(e)}'}), 500
+            
+    # Remove thumbnails
+    thumb_dir = os.path.join(THUMBNAIL_PATH, str(song_id))
+    if os.path.exists(thumb_dir):
+        try:
+            shutil.rmtree(thumb_dir)
+        except Exception as e:
+            print(f"Warning: Could not delete thumbnails for {song_id}: {e}")
     
     # Remove from all setlists
     SetlistSong.query.filter_by(song_id=song_id).delete()

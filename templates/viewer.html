@@ -715,8 +715,11 @@
             grid.style.flex = '1'; /* Take remaining vertical space for scrolling */
             grid.style.minHeight = '0'; /* Critical for proper flex scrolling */
             grid.style.overflowY = 'auto'; /* Ensure scrollable */
+            // Add iOS momentum scrolling
+            grid.style.webkitOverflowScrolling = 'touch';
 
-            let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
+            // Default: Select nothing (empty list) unless user has already selected manual pages
+            let currentlySelected = manualPages.length > 0 ? manualPages : [];
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const div = document.createElement('div');
                 div.className = 'page-grid-item' + (currentlySelected.includes(i) ? ' selected' : '');
