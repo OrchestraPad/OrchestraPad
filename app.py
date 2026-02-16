@@ -652,7 +652,6 @@ def scan_all_pages_region():
     results = {}
     
     try:
-    try:
         # Optimize: Process page by page to save memory
         reader = PdfReader(pdf_path)
         num_pages = len(reader.pages)
