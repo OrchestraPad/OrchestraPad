@@ -201,6 +201,66 @@ def index():
     songs = Song.query.all()
     return render_template('index.html', songs=songs)
 
+def sync_google_drive(debug_info):
+    """Helper to sync Google Drive folder using gdown."""
+    cloud_path = os.path.join(os.path.expanduser("~"), "CloudNoten")
+    try:
+        # Use absolute path for config
+        config_path = os.path.join(app.root_path, 'config.json')
+        print(f"DEBUG: Looking for config at {config_path}")
+        
+        if os.path.exists(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                cloud_link = config.get('cloud_link')
+                
+                print(f"DEBUG: Found cloud_link: {cloud_link}")
+                
+                if cloud_link:
+                    # Sanitize URL
+                    if 'drive.google.com' in cloud_link and 'folders/' in cloud_link:
+                        try:
+                            match = re.search(r'folders/([a-zA-Z0-9_-]+)', cloud_link)
+                            if match:
+                                file_id = match.group(1)
+                                cloud_link = f'https://drive.google.com/drive/folders/{file_id}'
+                                print(f"DEBUG: Cleaned URL: {cloud_link}")
+                        except Exception as parse_e:
+                            print(f"DEBUG: URL parsing error: {parse_e}")
+
+                    debug_info.append(f"Starting Cloud Sync (gdown) from {cloud_link}...")
+                    try:
+                        if not os.path.exists(cloud_path):
+                            os.makedirs(cloud_path)
+                            
+                        if gdown:
+                            print(f"DEBUG: Executing gdown download to {cloud_path}")
+                            # Use quiet=False to capture stdout if possible, but here we just run it
+                            gdown.download_folder(url=cloud_link, output=cloud_path, quiet=False, use_cookies=False)
+                            debug_info.append("Cloud Sync completed successfully.")
+                        else:
+                             msg = "Error: gdown module missing. Cannot sync."
+                             print(f"DEBUG: {msg}")
+                             debug_info.append(msg)
+                    except Exception as e:
+                        msg = f"Cloud Sync failed: {str(e)}"
+                        print(f"DEBUG: {msg}")
+                        debug_info.append(msg)
+                else:
+                    debug_info.append("DEBUG: No cloud_link in config.")
+        else:
+            debug_info.append(f"DEBUG: Config file not found at {config_path}")
+    except Exception as e:
+        debug_info.append(f"Config load error: {e}")
+        print(f"DEBUG: Config error: {e}")
+
+@app.route('/debug/cloud')
+def debug_cloud_sync():
+    """Run cloud sync and return log."""
+    debug_info = []
+    sync_google_drive(debug_info)
+    return "<br>".join(debug_info)
+
 @app.route('/scan')
 def scan_library():
     """Scans multiple locations for PDFs and updates the database."""
@@ -229,60 +289,7 @@ def scan_library():
     cloud_path = os.path.join(os.path.expanduser("~"), "CloudNoten")
     
     # Cloud Sync Logic
-    try:
-        # Use absolute path for config
-        config_path = os.path.join(app.root_path, 'config.json')
-        print(f"DEBUG: Looking for config at {config_path}")
-        
-        if os.path.exists(config_path):
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                cloud_link = config.get('cloud_link')
-                
-                print(f"DEBUG: Found cloud_link: {cloud_link}")
-                
-                if cloud_link:
-                    # Sanitize URL (remove query parameters like ?usp=share_link)
-                    # gdown prefers the clean URL or ID
-                    if 'drive.google.com' in cloud_link and 'folders/' in cloud_link:
-                        # Extract ID
-                        try:
-                            match = re.search(r'folders/([a-zA-Z0-9_-]+)', cloud_link)
-                            if match:
-                                file_id = match.group(1)
-                                cloud_link = f'https://drive.google.com/drive/folders/{file_id}'
-                                print(f"DEBUG: Cleaned URL: {cloud_link}")
-                        except Exception as parse_e:
-                            print(f"DEBUG: URL parsing error: {parse_e}")
-
-                    debug_info.append(f"Starting Cloud Sync (gdown) from {cloud_link}...")
-                    try:
-                        # Ensure folder exists
-                        if not os.path.exists(cloud_path):
-                            os.makedirs(cloud_path)
-                            
-                        # Sync using gdown
-                        if gdown:
-                            print(f"DEBUG: Executing gdown download to {cloud_path}")
-                            # output needs to be the folder itself or parent? 
-                            # gdown.download_folder downloads CONTENTS into output
-                            gdown.download_folder(url=cloud_link, output=cloud_path, quiet=False, use_cookies=False)
-                            debug_info.append("Cloud Sync completed successfully.")
-                        else:
-                             msg = "Error: gdown module missing. Cannot sync."
-                             print(f"DEBUG: {msg}")
-                             debug_info.append(msg)
-                    except Exception as e:
-                        msg = f"Cloud Sync failed: {str(e)}"
-                        print(f"DEBUG: {msg}")
-                        debug_info.append(msg)
-                else:
-                    print("DEBUG: No cloud_link in config.")
-        else:
-            print(f"DEBUG: Config file not found at {config_path}")
-    except Exception as e:
-        debug_info.append(f"Config load error: {e}")
-        print(f"DEBUG: Config error: {e}")
+    sync_google_drive(debug_info)
 
     if os.path.exists(cloud_path):
         scan_paths.append(cloud_path)
@@ -296,6 +303,7 @@ def scan_library():
                 if base in ['/media', '/mnt']:
                     for username_or_mount in os.listdir(base):
                         user_media = os.path.join(base, username_or_mount)
+
                         if os.path.isdir(user_media):
                             # Check if this is a mount point or contains mounts
                             # For /media/username, list subdirectories (each USB stick)
