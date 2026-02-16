@@ -223,14 +223,21 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">Cloud-Speicher (Google Drive)</div>
-                    <span id="cloud-status" class="status-badge status-disconnected">Nicht verbunden</span>
                 </div>
                 <p style="color: #AAA; margin-bottom: 24px;">
-                    Verbinde dein Google Drive, um Noten direkt aus dem Ordner "CloudNoten" zu laden.
+                    Gib hier den Link zu einem <b>freigegebenen Google Drive Ordner</b> ein.
+                    <br><small>Stelle sicher, dass der Link auf "Jeder mit dem Link kann lesen" eingestellt ist.</small>
                 </p>
-                <div id="cloud-actions">
-                    <button class="btn" onclick="startSetup()">Verbindung einrichten</button>
+
+                <input type="text" id="cloud-link" class="code-input"
+                    style="text-align: left; width: 100%; box-sizing: border-box; margin-bottom: 16px;"
+                    placeholder="https://drive.google.com/drive/folders/...">
+
+                <div id="cloud-actions" style="display: flex; gap: 12px;">
+                    <button class="btn" onclick="saveLink()">Speichern</button>
+                    <!-- <button class="btn" style="background: #333;" onclick="syncNow()">Jetzt Synchronisieren</button> -->
                 </div>
+                <p id="status-msg" style="margin-top: 16px; min-height: 20px;"></p>
             </div>
         </div>
     </div>
@@ -273,85 +280,49 @@
     </div>
 
     <script>
-        // Check Status on Load
-        checkStatus();
+        // Load Link on Load
+        loadLink();
 
-        async function checkStatus() {
+        async function loadLink() {
             try {
-                const res = await fetch('/api/cloud/status');
+                const res = await fetch('/api/settings/get_cloud_link');
                 const data = await res.json();
-                const badge = document.getElementById('cloud-status');
-                const actions = document.getElementById('cloud-actions');
-
-                if (data.connected) {
-                    badge.textContent = 'Verbunden';
-                    badge.className = 'status-badge status-connected';
-                    actions.innerHTML = '<button class="btn" onclick="disconnectCloud()" style="background: #444;">Verbindung trennen</button>';
-                } else {
-                    badge.textContent = 'Nicht verbunden';
-                    badge.className = 'status-badge status-disconnected';
+                if (data.link) {
+                    document.getElementById('cloud-link').value = data.link;
                 }
             } catch (e) {
                 console.error(e);
             }
         }
 
-        function closeModal() {
-            document.getElementById('setup-modal').style.display = 'none';
-        }
+        async function saveLink() {
+            const link = document.getElementById('cloud-link').value.trim();
+            const btn = document.querySelector('button');
+            const msg = document.getElementById('status-msg');
 
-        function showStep(id) {
-            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
-            document.getElementById(id).classList.add('active');
-        }
-
-        async function startSetup() {
-            document.getElementById('setup-modal').style.display = 'flex';
-            showStep('step-loading');
+            btn.disabled = true;
+            msg.textContent = "Speichere...";
+            msg.style.color = "#AAA";
 
             try {
-                const res = await fetch('/api/cloud/setup/start');
-                const data = await res.json();
-
-                if (data.url) {
-                    document.getElementById('auth-url').textContent = data.url;
-                    showStep('step-url');
-                } else {
-                    throw new Error(data.error || 'Keine URL erhalten');
-                }
-            } catch (e) {
-                document.getElementById('error-msg').textContent = e.message;
-                showStep('step-error');
-            }
-        }
-
-        async function finishSetup() {
-            const code = document.getElementById('auth-code').value.trim();
-            if (!code) return;
-
-            try {
-                const res = await fetch('/api/cloud/setup/finish', {
+                const res = await fetch('/api/settings/save_cloud_link', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code: code })
+                    body: JSON.stringify({ link: link })
                 });
-                const data = await res.json();
 
-                if (data.status === 'success') {
-                    showStep('step-success');
+                if (res.ok) {
+                    msg.textContent = "Gespeichert! Beim nächsten 'Noten einlesen' wird dieser Ordner synchronisiert.";
+                    msg.style.color = "#4CAF50"; // Green
                 } else {
-                    throw new Error(data.error || 'Verbindung fehlgeschlagen');
+                    throw new Error("Fehler beim Speichern");
                 }
             } catch (e) {
-                document.getElementById('error-msg').textContent = e.message;
-                showStep('step-error');
+                msg.textContent = "Fehler: " + e.message;
+                msg.style.color = "#F44336"; // Red
+            } finally {
+                btn.disabled = false;
             }
-        }
-
-        async function disconnectCloud() {
-            if (!confirm('Wirklich trennen?')) return;
-            await fetch('/api/cloud/disconnect', { method: 'POST' });
-            location.reload();
         }
     </script>
 </body>
