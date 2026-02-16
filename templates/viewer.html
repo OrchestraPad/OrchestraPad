@@ -749,7 +749,24 @@
                 }
 
                 div.dataset.selected = currentlySelected.includes(i);
-                div.onclick = function () {
+                // Handle Click vs Drag for touch devices
+                let isDrag = false;
+                let startY = 0;
+
+                div.addEventListener('touchstart', function (e) {
+                    isDrag = false;
+                    startY = e.touches[0].clientY;
+                }, { passive: true });
+
+                div.addEventListener('touchmove', function (e) {
+                    if (Math.abs(e.touches[0].clientY - startY) > 10) {
+                        isDrag = true;
+                    }
+                }, { passive: true });
+
+                div.onclick = function (e) {
+                    if (isDrag) return; // Ignore click if it was a scroll/drag
+
                     const isSel = div.dataset.selected === 'true';
                     div.dataset.selected = !isSel;
                     if (!isSel) div.classList.add('selected'); else div.classList.remove('selected');
