@@ -220,11 +220,15 @@
             background: var(--md-sys-color-surface-variant);
             padding: 32px;
             border-radius: 32px;
-            max-width: 90%;
-            max-height: 85vh;
+            width: 90%;
+            max-width: 600px;
+            height: 80vh;
+            /* Fixed height for consistent scrolling container */
             display: flex;
             flex-direction: column;
             border: 1px solid #444;
+            position: relative;
+            /* Ensure stacking context */
         }
 
         .page-grid-item {
@@ -715,8 +719,8 @@
             grid.style.flex = '1'; /* Take remaining vertical space for scrolling */
             grid.style.minHeight = '0'; /* Critical for proper flex scrolling */
             grid.style.overflowY = 'auto'; /* Ensure scrollable */
-            // Add iOS momentum scrolling
             grid.style.webkitOverflowScrolling = 'touch';
+            grid.style.touchAction = 'pan-y'; /* Explicitly allow vertical panning */
 
             // Default: Select nothing (empty list) unless user has already selected manual pages
             let currentlySelected = manualPages.length > 0 ? manualPages : [];
