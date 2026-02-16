@@ -266,6 +266,10 @@
             border-radius: 4px;
             background: #fff;
             /* White background for scans */
+            pointer-events: none;
+            /* Let touches pass through to the container (div) for scrolling */
+            user-select: none;
+            -webkit-user-drag: none;
         }
 
         .page-number-badge {
@@ -732,6 +736,8 @@
                 img.src = `/thumbnail/${songId}/${i}`;
                 img.className = 'page-thumb';
                 img.loading = 'lazy';
+                img.setAttribute('draggable', 'false'); // Prevent native drag
+                img.oncontextmenu = function (e) { e.preventDefault(); return false; }; // Prevent long-press menu
                 div.appendChild(img);
 
                 // Badge
