@@ -8,10 +8,19 @@ from PIL import Image
 import difflib
 import re
 import shutil
+import threading
+import subprocess
+import json
+import time
+
+# Add these globals for rclone auth state
+auth_process = None
+auth_lock = threading.Lock()
 
 # Configuration
-STORAGE_PATH = os.path.join(os.getcwd(), 'usb_drive')
+STORAGE_PATH = os.path.join(os.getcwd(), 'storage')
 THUMBNAIL_PATH = os.path.join(os.getcwd(), 'thumbnails')
+CLOUD_MOUNT_PATH = os.path.join(os.path.expanduser("~"), "CloudNoten")
 USB_BASE_PATH = '/media/pi' # Default Raspberry Pi mount point
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///music.db'
@@ -212,14 +221,27 @@ def scan_library():
     
     # Check for Cloud Folder (e.g. mounted Google Drive via rclone)
     cloud_path = os.path.join(os.path.expanduser("~"), "CloudNoten")
+    
+    # Try to sync from CloudNoten remote if it exists
+    try:
+        # Check if remote exists
+        result = subprocess.run(['rclone', 'listremotes'], capture_output=True, text=True)
+        if 'CloudNoten:' in result.stdout:
+            debug_info.append("Syncing from CloudNoten remote...")
+            # Sync downloads new/changed files to local folder
+            subprocess.run(['rclone', 'sync', 'CloudNoten:', cloud_path], check=True)
+            debug_info.append("Cloud sync completed.")
+    except Exception as e:
+        debug_info.append(f"Cloud sync error: {e}")
+
     if os.path.exists(cloud_path):
         scan_paths.append(cloud_path)
-        debug_info.append(f"Found Cloud Folder: {cloud_path}")
+        debug_info.append(f"Scanning Cloud Folder: {cloud_path}")
     else:
-        # Create it so user knows where to mount
+        # Create it so user knows where to mount/sync
         try:
             os.makedirs(cloud_path)
-            debug_info.append(f"Created Cloud Folder for mounting: {cloud_path}")
+            debug_info.append(f"Created Cloud Folder: {cloud_path}")
         except:
             pass
     
@@ -790,5 +812,138 @@ def save_part_mapping():
     
     return jsonify({'status': 'success'})
 
+
+# --- Settings & Cloud Routes ---
+
+@app.route('/settings')
+def settings():
+    return render_template('settings.html', app_version="1.2.0")
+
+@app.route('/api/cloud/status')
+def cloud_status():
+    """Check if CloudNoten remote is configured in rclone."""
+    try:
+        # Check if 'CloudNoten' exists in rclone config
+        result = subprocess.run(['rclone', 'listremotes'], capture_output=True, text=True)
+        configured = 'CloudNoten:' in result.stdout
+        return jsonify({'connected': configured})
+    except FileNotFoundError:
+        return jsonify({'connected': False, 'error': 'rclone not installed'})
+
+@app.route('/api/cloud/setup/start')
+def cloud_setup_start():
+    """Start rclone authorize process and return URL."""
+    global auth_process
+    
+    with auth_lock:
+        if auth_process and auth_process.poll() is None:
+            auth_process.terminate()  # Kill existing
+            
+        try:
+            # Start rclone authorize
+            # --auth-no-open-browser forces it to print the URL
+            auth_process = subprocess.Popen(
+                ['rclone', 'authorize', 'drive', '--auth-no-open-browser'],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, # Merge stderr to capture prompts
+                text=True,
+                bufsize=1 # Line buffered
+            )
+            
+            # Read lines until we find the URL
+            url = None
+            start_time = time.time()
+            
+            while time.time() - start_time < 10: # 10s timeout
+                line = auth_process.stdout.readline()
+                if not line: break
+                
+                print(f"Rclone: {line.strip()}")
+                if "http" in line and "accounts.google.com" in line:
+                    # Extract URL (it might be surrounded by text, but usually it's clean or easily parsable)
+                    # Often: "Please go to the following link: https://..."
+                    parts = line.split(' ')
+                    for p in parts:
+                        if p.startswith('http'):
+                            url = p.strip()
+                            break
+                    if url: break
+            
+            if url:
+                return jsonify({'url': url})
+            else:
+                auth_process.terminate()
+                return jsonify({'error': 'Could not get Auth URL from rclone'}), 500
+                
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/cloud/setup/finish', methods=['POST'])
+def cloud_setup_finish():
+    """Receive code, send to rclone, and save config."""
+    global auth_process
+    code = request.json.get('code')
+    
+    if not code:
+        return jsonify({'error': 'No code provided'}), 400
+        
+    with auth_lock:
+        if not auth_process or auth_process.poll() is not None:
+             return jsonify({'error': 'Setup process expired. Please try again.'}), 400
+             
+        try:
+            # Send code to rclone
+            # It expects the code on stdin
+            print(f"Sending code: {code}")
+            output, _ = auth_process.communicate(input=code + "\n", timeout=15)
+            
+            # The output should contain the token JSON
+            # "Paste the following into your remote machine:" ... JSON ...
+            print(f"Rclone Output: {output}")
+            
+            # Simple heuristic: Find the JSON object in the output
+            # It usually looks like {"access_token":...}
+            import re
+            match = re.search(r'\{.*"access_token".*\}', output, re.DOTALL)
+            
+            if match:
+                token_json = match.group(0)
+                # Cleanup JSON (sometimes rclone wraps it or adds newlines)
+                token_json = token_json.replace('\n', '').replace('\r', '')
+                
+                # Create the remote
+                # rclone config create <name> <type> <key>=<value>...
+                # We need to pass the token as a string config
+                subprocess.run([
+                    'rclone', 'config', 'create', 'CloudNoten', 'drive',
+                    f'token={token_json}',
+                    'config_is_local=false'
+                ], check=True)
+                
+                return jsonify({'status': 'success'})
+            else:
+                return jsonify({'error': 'Could not verify code (Trace missing)'}), 400
+                
+        except subprocess.TimeoutExpired:
+            auth_process.terminate()
+            return jsonify({'error': 'Timeout verifying code'}), 500
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
+
+@app.route('/api/cloud/disconnect', methods=['POST'])
+def cloud_disconnect():
+    """Delete the CloudNoten remote."""
+    try:
+        subprocess.run(['rclone', 'config', 'delete', 'CloudNoten'], check=True)
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
+    # Create DB tables
+    with app.app_context():
+        db.create_all()
+    
+    # Run server
     app.run(host='0.0.0.0', port=5000, debug=True)

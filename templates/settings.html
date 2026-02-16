@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OrchestraPad - Einstellungen</title>
+    <style>
+        :root {
+            --md-sys-color-primary: #D32F2F;
+            --md-sys-color-on-primary: #FFFFFF;
+            --md-sys-color-primary-container: #801313;
+            --md-sys-color-on-primary-container: #FFDAD9;
+            --md-sys-color-surface: #000000;
+            --md-sys-color-on-surface: #E6E1E5;
+            --md-sys-color-on-surface-variant: #CAC4D0;
+            --md-sys-color-outline: #938F99;
+            --md-sys-typescale-h1-font: system-ui, -apple-system, sans-serif;
+            --md-sys-shape-corner-large: 16px;
+        }
+
+        body {
+            font-family: var(--md-sys-typescale-h1-font);
+            margin: 0;
+            padding: 0;
+            background: var(--md-sys-color-surface);
+            color: var(--md-sys-color-on-surface);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar (Same as Index) */
+        .sidebar {
+            width: 300px;
+            background: #111;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            border-right: 1px solid var(--md-sys-color-outline);
+        }
+
+        .setlist-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            margin: 4px 0;
+            border-radius: var(--md-sys-shape-corner-large);
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--md-sys-color-on-surface-variant);
+            text-decoration: none;
+        }
+
+        .setlist-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .setlist-item.active {
+            background: var(--md-sys-color-primary-container);
+            color: var(--md-sys-color-on-primary-container);
+            font-weight: 500;
+        }
+
+        .icon-box {
+            margin-right: 12px;
+            display: flex;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            overflow-y: auto;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-weight: 400;
+        }
+
+        /* Settings Card */
+        .card {
+            background: #1E1E1E;
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 24px;
+            max-width: 800px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-connected {
+            background: #0F5132;
+            color: #D1E7DD;
+        }
+
+        .status-disconnected {
+            background: #333;
+            color: #AAA;
+        }
+
+        .btn {
+            background: var(--md-sys-color-primary);
+            color: var(--md-sys-color-on-primary);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 100px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: #222;
+            padding: 32px;
+            border-radius: 24px;
+            width: 500px;
+            max-width: 90%;
+            text-align: center;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        input.code-input {
+            width: 100%;
+            padding: 12px;
+            margin: 16px 0;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background: #111;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .url-box {
+            background: #111;
+            padding: 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-family: monospace;
+            margin: 16px 0;
+            color: var(--md-sys-color-primary);
+            user-select: all;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div style="display: flex; align-items: center; margin-bottom: 24px; padding: 0 12px;">
+                <h3 style="margin: 0; font-weight: 500;">OrchestraPad</h3>
+            </div>
+
+            <a href="/" class="setlist-item">
+                <div class="icon-box">🔙</div>
+                <span>Zurück zur Übersicht</span>
+            </a>
+
+            <div style="flex: 1;"></div>
+
+            <h2>System</h2>
+            <div class="setlist-item active">
+                <div class="icon-box">⚙️</div>
+                <span>Einstellungen</span>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <h1>Einstellungen</h1>
+
+            <!-- Cloud Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Cloud-Speicher (Google Drive)</div>
+                    <span id="cloud-status" class="status-badge status-disconnected">Nicht verbunden</span>
+                </div>
+                <p style="color: #AAA; margin-bottom: 24px;">
+                    Verbinde dein Google Drive, um Noten direkt aus dem Ordner "CloudNoten" zu laden.
+                </p>
+                <div id="cloud-actions">
+                    <button class="btn" onclick="startSetup()">Verbindung einrichten</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Setup Modal -->
+    <div class="modal-overlay" id="setup-modal">
+        <div class="modal">
+            <!-- Step 1: Loading URL -->
+            <div class="step" id="step-loading">
+                <h3>Einen Moment...</h3>
+                <p>Authentifizierungs-Link wird generiert.</p>
+            </div>
+
+            <!-- Step 2: Show URL -->
+            <div class="step" id="step-url">
+                <h3>Google Drive verbinden</h3>
+                <p>1. Öffne diesen Link auf deinem Handy oder PC:</p>
+                <div class="url-box" id="auth-url">Loading...</div>
+                <p>2. Erlaube den Zugriff und kopiere den Code.</p>
+                <p>3. Gib den Code hier ein:</p>
+                <input type="text" id="auth-code" class="code-input" placeholder="Code hier einfügen/tippen">
+                <button class="btn" onclick="finishSetup()">Verbinden</button>
+                <button class="btn" style="background: transparent;" onclick="closeModal()">Abbrechen</button>
+            </div>
+
+            <!-- Step 3: Success -->
+            <div class="step" id="step-success">
+                <h3>Erfolg! 🎉</h3>
+                <p>Google Drive wurde erfolgreich verbunden.</p>
+                <button class="btn" onclick="location.reload()">Fertig</button>
+            </div>
+
+            <!-- Step 4: Error -->
+            <div class="step" id="step-error">
+                <h3 style="color: var(--md-sys-color-error)">Fehler</h3>
+                <p id="error-msg">Etwas ist schief gelaufen.</p>
+                <button class="btn" onclick="closeModal()">Schließen</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check Status on Load
+        checkStatus();
+
+        async function checkStatus() {
+            try {
+                const res = await fetch('/api/cloud/status');
+                const data = await res.json();
+                const badge = document.getElementById('cloud-status');
+                const actions = document.getElementById('cloud-actions');
+
+                if (data.connected) {
+                    badge.textContent = 'Verbunden';
+                    badge.className = 'status-badge status-connected';
+                    actions.innerHTML = '<button class="btn" onclick="disconnectCloud()" style="background: #444;">Verbindung trennen</button>';
+                } else {
+                    badge.textContent = 'Nicht verbunden';
+                    badge.className = 'status-badge status-disconnected';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('setup-modal').style.display = 'none';
+        }
+
+        function showStep(id) {
+            document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        async function startSetup() {
+            document.getElementById('setup-modal').style.display = 'flex';
+            showStep('step-loading');
+
+            try {
+                const res = await fetch('/api/cloud/setup/start');
+                const data = await res.json();
+
+                if (data.url) {
+                    document.getElementById('auth-url').textContent = data.url;
+                    showStep('step-url');
+                } else {
+                    throw new Error(data.error || 'Keine URL erhalten');
+                }
+            } catch (e) {
+                document.getElementById('error-msg').textContent = e.message;
+                showStep('step-error');
+            }
+        }
+
+        async function finishSetup() {
+            const code = document.getElementById('auth-code').value.trim();
+            if (!code) return;
+
+            try {
+                const res = await fetch('/api/cloud/setup/finish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: code })
+                });
+                const data = await res.json();
+
+                if (data.status === 'success') {
+                    showStep('step-success');
+                } else {
+                    throw new Error(data.error || 'Verbindung fehlgeschlagen');
+                }
+            } catch (e) {
+                document.getElementById('error-msg').textContent = e.message;
+                showStep('step-error');
+            }
+        }
+
+        async function disconnectCloud() {
+            if (!confirm('Wirklich trennen?')) return;
+            await fetch('/api/cloud/disconnect', { method: 'POST' });
+            location.reload();
+        }
+    </script>
+</body>
+
+</html>
