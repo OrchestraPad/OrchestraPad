@@ -252,6 +252,10 @@
             /* Prevent squashing */
             flex-shrink: 0;
             /* Prevent shrinking in flex container */
+            user-select: none;
+            /* Prevent text selection on touch */
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .page-thumb {
@@ -337,10 +341,7 @@
             </svg>
         </button>
         <div class="divider"></div>
-        <select id="part-select" onchange="changePart()" style="max-width: 140px;">
-            <option value="All">Lade...</option>
-        </select>
-        <div class="divider"></div>
+        <!-- Part Selector Removed per user request -->
         <input type="range" id="zoom-slider" min="50" max="300" value="100" style="width: 100px;">
         <div class="divider"></div>
         <button class="icon-btn" onclick="toggleDrawingMode()" id="btn-draw" title="Zeichnen">
@@ -682,30 +683,19 @@
         function loadParts() {
             return fetch('/analyze_parts/{{ song.id }}').then(r => r.json()).then(data => {
                 availableParts = data;
-                const select = document.getElementById('part-select');
-                select.innerHTML = '<option value="All">Alle Stimmen</option>';
-                let hasCurrent = false;
-                for (const [name, pages] of Object.entries(availableParts)) {
-                    const opt = document.createElement('option');
-                    opt.value = name; opt.textContent = name + ' (' + pages.length + ' S.)';
-                    select.appendChild(opt);
-                    if (name === currentPart) hasCurrent = true;
+                availableParts = data;
+                // Part select dropdown removed
+                if (manualPages.length === 0 && currentPart !== 'All' && availableParts[currentPart]) {
+                    // Logic to handle existing part selection if any (legacy), or just default to All
                 }
-                if (manualPages.length > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = "Manual"; opt.textContent = "Benutzerdefiniert";
-                    select.appendChild(opt); select.value = "Manual";
-                } else if (hasCurrent) select.value = currentPart;
-                else currentPart = 'All';
                 calculateVirtualPages();
             });
         }
 
         function changePart() {
-            const val = document.getElementById('part-select').value;
-            if (val !== 'Manual') {
-                currentPart = val; manualPages = []; saveSettingsToServer();
-            }
+            // Function functionality reduced as UI element is gone. 
+            // Kept for compatibility if called from elsewhere, but effectively does nothing 
+            // or just resets to default if needed.
             calculateVirtualPages(); currentVirtualIndex = 0; renderPage(0);
         }
 
@@ -721,6 +711,14 @@
             grid.style.overflowY = 'auto'; /* Ensure scrollable */
             grid.style.webkitOverflowScrolling = 'touch';
             grid.style.touchAction = 'pan-y'; /* Explicitly allow vertical panning */
+
+            // Hide Scrollbar (cleaner UI)
+            const style = document.createElement('style');
+            style.innerHTML = `
+                #page-grid::-webkit-scrollbar { display: none; }
+                #page-grid { -ms-overflow-style: none; scrollbar-width: none; }
+            `;
+            document.head.appendChild(style);
 
             // Default: Select nothing (empty list) unless user has already selected manual pages
             let currentlySelected = manualPages.length > 0 ? manualPages : [];
@@ -789,7 +787,9 @@
             grid.childNodes.forEach(node => { if (node.dataset.selected === 'true') selected.push(parseInt(node.dataset.pageNum)); });
             manualPages = selected.sort((a, b) => a - b);
             saveSettingsToServer();
-            document.getElementById('part-select').value = 'Manual';
+            manualPages = selected.sort((a, b) => a - b);
+            saveSettingsToServer();
+            // document.getElementById('part-select').value = 'Manual'; // Removed
             calculateVirtualPages(); currentVirtualIndex = 0; renderPage(0); closePageSelector();
         }
 
