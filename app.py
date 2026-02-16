@@ -12,7 +12,11 @@ import threading
 import subprocess
 import json
 import time
-import gdown
+try:
+    import gdown
+except ImportError:
+    gdown = None
+    print("Warning: gdown module not found. Cloud sync will be disabled.")
 
 app = Flask(__name__)
 # Add these globals for rclone auth state
@@ -234,21 +238,16 @@ def scan_library():
                 
                 if cloud_link:
                     debug_info.append("Starting Cloud Sync (gdown)...")
-                    # Ensure folder exists
-                    if not os.path.exists(cloud_path):
-                        os.makedirs(cloud_path)
-                        
-                    # Sync using gdown
-                    # We utilize a stamp file to avoid re-downloading everything if not needed? 
-                    # Actually gdown handles folder download quite well, but might be slow if large.
-                    # quiet=True to avoid log spam, though we might want to log errors.
                     try:
-                        # gdown.download_folder(url, output, quiet=False, use_cookies=False)
-                        # We run this in a way that doesn't block forever if possible, 
-                        # but scan_library is blocking anyway.
-                        # Note: gdown checks existing files.
-                        gdown.download_folder(url=cloud_link, output=cloud_path, quiet=True, use_cookies=False)
-                        debug_info.append("Cloud Sync completed successfully.")
+                        if not os.path.exists(cloud_path):
+                            os.makedirs(cloud_path)
+                            
+                        # Sync using gdown
+                        if gdown:
+                            gdown.download_folder(url=cloud_link, output=cloud_path, quiet=True, use_cookies=False)
+                            debug_info.append("Cloud Sync completed successfully.")
+                        else:
+                             debug_info.append("Error: gdown module missing. Cannot sync.")
                     except Exception as e:
                         debug_info.append(f"Cloud Sync failed: {str(e)}")
         except Exception as e:
