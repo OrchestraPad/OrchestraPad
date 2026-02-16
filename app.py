@@ -210,6 +210,19 @@ def scan_library():
         '/media/pi',   # Older Raspberry Pi OS
     ]
     
+    # Check for Cloud Folder (e.g. mounted Google Drive via rclone)
+    cloud_path = os.path.join(os.path.expanduser("~"), "CloudNoten")
+    if os.path.exists(cloud_path):
+        scan_paths.append(cloud_path)
+        debug_info.append(f"Found Cloud Folder: {cloud_path}")
+    else:
+        # Create it so user knows where to mount
+        try:
+            os.makedirs(cloud_path)
+            debug_info.append(f"Created Cloud Folder for mounting: {cloud_path}")
+        except:
+            pass
+    
     for base in usb_search_paths:
         if os.path.exists(base):
             debug_info.append(f"Checking mount base: {base}")
