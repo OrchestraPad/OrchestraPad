@@ -228,15 +228,40 @@
         }
 
         .page-grid-item {
-            padding: 24px;
-            border-radius: 16px;
+            padding: 8px;
+            border-radius: 12px;
             background: #111;
             color: var(--md-sys-color-on-surface-variant);
             cursor: pointer;
             text-align: center;
             font-weight: 500;
             border: 2px solid #333;
-            font-size: 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page-thumb {
+            width: 100%;
+            aspect-ratio: 1/1.4;
+            /* Approx A4 */
+            object-fit: cover;
+            border-radius: 4px;
+            background: #000;
+        }
+
+        .page-number-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
         }
 
         .page-grid-item.selected {
@@ -312,7 +337,8 @@
                     d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
             </svg>
         </button>
-        <button class="icon-btn" onclick="openOCRModal()" id="btn-ocr" title="Stimmen erkennen">
+        <!-- OCR Button hidden as per user request to pivot to visual selection -->
+        <button class="icon-btn" onclick="openOCRModal()" id="btn-ocr" title="Stimmen erkennen" style="display: none;">
             <svg viewBox="0 0 24 24" fill="currentColor">
                 <path
                     d="M15 3V7.5L15 8H19V6H16V5H19V4H16V3H19C20.1 3 21 3.9 21 5V8C21 9.1 20.1 10 19 10H15V13H17V12H19V11H17V10H19C20.1 10 21 10.9 21 12V15C21 16.1 20.1 17 19 17H15V21H11V17H7V21H3V17C1.9 17 1 16.1 1 15V12C1 10.9 1.9 10 3 10H5V8H3C1.9 8 1 7.1 1 6V3H3V4H6V5H3V6H6V8H3V9H5V12H3V13H5V14H3V15H5V16H11V15H13V12H11V11H13V10H11V9H13V8H11V5H15V4H11V3H15M17 14H19V15H17V14M5 4H7V8H5V4M5 11H7V15H5V11M15 11H13.5L15.3 15H16.7L18.5 11H17L16 13.5L15 11Z" />
@@ -675,12 +701,34 @@
             const modal = document.getElementById('page-selector-modal');
             const grid = document.getElementById('page-grid');
             grid.innerHTML = '';
+            // Make grid columns slightly wider for thumbnails
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
+
             let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
             for (let i = 1; i <= pdfDoc.numPages; i++) {
                 const div = document.createElement('div');
                 div.className = 'page-grid-item' + (currentlySelected.includes(i) ? ' selected' : '');
-                div.textContent = i; div.dataset.pageNum = i;
-                if (pageOrientations[i] === 'landscape') div.innerHTML += '<br><small style="font-size:10px; opacity:0.7">Landscape</small>';
+                div.dataset.pageNum = i;
+
+                // Image
+                const img = document.createElement('img');
+                img.src = `/thumbnail/${songId}/${i}`;
+                img.className = 'page-thumb';
+                img.loading = 'lazy';
+                div.appendChild(img);
+
+                // Badge
+                const badge = document.createElement('div');
+                badge.className = 'page-number-badge';
+                badge.textContent = i;
+                div.appendChild(badge);
+
+                if (pageOrientations[i] === 'landscape') {
+                    const ls = document.createElement('small');
+                    ls.style.fontSize = '10px'; ls.style.opacity = '0.7'; ls.textContent = 'Landscape';
+                    div.appendChild(ls);
+                }
+
                 div.dataset.selected = currentlySelected.includes(i);
                 div.onclick = function () {
                     const isSel = div.dataset.selected === 'true';

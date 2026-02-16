@@ -11,6 +11,7 @@ import shutil
 
 # Configuration
 STORAGE_PATH = os.path.join(os.getcwd(), 'usb_drive')
+THUMBNAIL_PATH = os.path.join(os.getcwd(), 'thumbnails')
 USB_BASE_PATH = '/media/pi' # Default Raspberry Pi mount point
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///music.db'
@@ -195,6 +196,8 @@ def scan_library():
     # Ensure local storage path exists
     if not os.path.exists(STORAGE_PATH):
         os.makedirs(STORAGE_PATH)
+    if not os.path.exists(THUMBNAIL_PATH):
+        os.makedirs(THUMBNAIL_PATH)
     
     # Locations to scan
     scan_paths = [STORAGE_PATH]
@@ -485,6 +488,43 @@ def system_control():
         return jsonify({"status": "error", "message": "Ungültige Aktion."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
+
+@app.route('/thumbnail/<int:song_id>/<int:page_num>')
+def get_thumbnail(song_id, page_num):
+    song = Song.query.get_or_404(song_id)
+    
+    # Folder for this song's thumbnails
+    song_thumb_dir = os.path.join(THUMBNAIL_PATH, str(song_id))
+    if not os.path.exists(song_thumb_dir):
+        os.makedirs(song_thumb_dir)
+        
+    thumb_filename = f"page_{page_num}.jpg"
+    thumb_path = os.path.join(song_thumb_dir, thumb_filename)
+    
+    # If exists, serve
+    if os.path.exists(thumb_path):
+        return send_from_directory(song_thumb_dir, thumb_filename)
+        
+    # Generate
+    try:
+        pdf_path = os.path.join(STORAGE_PATH, song.file_path)
+        # Convert single page (1-based), low DPI for speed/size
+        # dpi=50 is roughly 400-600px width for A4, good for thumbnails
+        images = convert_from_path(pdf_path, first_page=page_num, last_page=page_num, dpi=50)
+        
+        if images:
+            # Optimize and save
+            img = images[0]
+            # Convert to RGB (remove alpha) for JPEG
+            if img.mode in ("RGBA", "P"): img = img.convert("RGB")
+            img.save(thumb_path, "JPEG", quality=70)
+            return send_from_directory(song_thumb_dir, thumb_filename)
+        else:
+            return "Could not generate thumbnail", 404
+            
+    except Exception as e:
+        print(f"Thumb error: {e}")
+        return str(e), 500
 
 @app.route('/scan_part_region', methods=['POST'])
 def scan_part_region():
