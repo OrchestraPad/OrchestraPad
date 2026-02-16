@@ -389,7 +389,7 @@
                     auswählen</button>
             </div>
             <div id="page-grid"
-                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 12px; overflow-y: auto; padding: 4px;">
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 12px; overflow-y: auto; padding: 4px; flex: 1; min-height: 0;">
             </div>
             <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px;">
                 <button onclick="closePageSelector()" class="btn-filled"
@@ -704,9 +704,13 @@
             const grid = document.getElementById('page-grid');
             grid.innerHTML = '';
             // Single column layout for better visibility
+            // Ensure full width and vertical scrolling
             grid.style.gridTemplateColumns = '1fr';
-            grid.style.maxWidth = '600px';
+            grid.style.maxWidth = '100%';
+            grid.style.width = '100%';
             grid.style.margin = '0 auto';
+            grid.style.flex = '1'; /* Take remaining vertical space for scrolling */
+            grid.style.minHeight = '0'; /* Critical for proper flex scrolling */
 
             let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
             for (let i = 1; i <= pdfDoc.numPages; i++) {
