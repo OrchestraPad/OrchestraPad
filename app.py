@@ -242,7 +242,20 @@ def scan_library():
                 print(f"DEBUG: Found cloud_link: {cloud_link}")
                 
                 if cloud_link:
-                    debug_info.append("Starting Cloud Sync (gdown)...")
+                    # Sanitize URL (remove query parameters like ?usp=share_link)
+                    # gdown prefers the clean URL or ID
+                    if 'drive.google.com' in cloud_link and 'folders/' in cloud_link:
+                        # Extract ID
+                        try:
+                            match = re.search(r'folders/([a-zA-Z0-9_-]+)', cloud_link)
+                            if match:
+                                file_id = match.group(1)
+                                cloud_link = f'https://drive.google.com/drive/folders/{file_id}'
+                                print(f"DEBUG: Cleaned URL: {cloud_link}")
+                        except Exception as parse_e:
+                            print(f"DEBUG: URL parsing error: {parse_e}")
+
+                    debug_info.append(f"Starting Cloud Sync (gdown) from {cloud_link}...")
                     try:
                         # Ensure folder exists
                         if not os.path.exists(cloud_path):
