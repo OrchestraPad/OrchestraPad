@@ -246,17 +246,19 @@
 
         .page-thumb {
             width: 100%;
-            aspect-ratio: 1/1.4;
+            height: auto;
             /* Approx A4 */
-            object-fit: cover;
+            object-fit: contain;
             border-radius: 4px;
-            background: #000;
+            background: #fff;
+            /* White background for scans */
         }
 
         .page-number-badge {
             position: absolute;
-            top: 4px;
-            left: 4px;
+            bottom: 4px;
+            /* Move to bottom */
+            right: 4px;
             background: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 2px 6px;
@@ -701,8 +703,8 @@
             const modal = document.getElementById('page-selector-modal');
             const grid = document.getElementById('page-grid');
             grid.innerHTML = '';
-            // Make grid columns slightly wider for thumbnails
-            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(120px, 1fr))';
+            // Wider columns for header crops
+            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
 
             let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
             for (let i = 1; i <= pdfDoc.numPages; i++) {

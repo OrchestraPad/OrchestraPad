@@ -508,16 +508,26 @@ def get_thumbnail(song_id, page_num):
     # Generate
     try:
         pdf_path = os.path.join(STORAGE_PATH, song.file_path)
-        # Convert single page (1-based), low DPI for speed/size
-        # dpi=50 is roughly 400-600px width for A4, good for thumbnails
-        images = convert_from_path(pdf_path, first_page=page_num, last_page=page_num, dpi=50)
+        # Convert single page (1-based) at higher DPI for readable text
+        # dpi=150 gives good quality for headers
+        images = convert_from_path(pdf_path, first_page=page_num, last_page=page_num, dpi=150)
         
         if images:
             # Optimize and save
             img = images[0]
+            
+            # Crop to top 33% (Header area) where instrument names usually are
+            w, h = img.size
+            img = img.crop((0, 0, w, int(h * 0.33)))
+            
+            # Resize width to max 600px to keep file size small
+            if w > 600:
+                new_h = int((600 / w) * img.size[1])
+                img = img.resize((600, new_h), Image.Resampling.LANCZOS)
+
             # Convert to RGB (remove alpha) for JPEG
             if img.mode in ("RGBA", "P"): img = img.convert("RGB")
-            img.save(thumb_path, "JPEG", quality=70)
+            img.save(thumb_path, "JPEG", quality=80)
             return send_from_directory(song_thumb_dir, thumb_filename)
         else:
             return "Could not generate thumbnail", 404
