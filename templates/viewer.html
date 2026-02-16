@@ -703,8 +703,10 @@
             const modal = document.getElementById('page-selector-modal');
             const grid = document.getElementById('page-grid');
             grid.innerHTML = '';
-            // Wider columns for header crops
-            grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(200px, 1fr))';
+            // Single column layout for better visibility
+            grid.style.gridTemplateColumns = '1fr';
+            grid.style.maxWidth = '600px';
+            grid.style.margin = '0 auto';
 
             let currentlySelected = manualPages.length > 0 ? manualPages : Array.from({ length: pdfDoc.numPages }, (_, i) => i + 1);
             for (let i = 1; i <= pdfDoc.numPages; i++) {
