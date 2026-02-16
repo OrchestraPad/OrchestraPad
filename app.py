@@ -516,13 +516,13 @@ def get_thumbnail(song_id, page_num):
             # Optimize and save
             img = images[0]
             
-            # Crop to top 33% (Header area) where instrument names usually are
+            # Crop to top 25% height and left 50% width per user request
             w, h = img.size
-            img = img.crop((0, 0, w, int(h * 0.33)))
+            img = img.crop((0, 0, int(w * 0.5), int(h * 0.25)))
             
-            # Resize width to max 600px to keep file size small
-            if w > 600:
-                new_h = int((600 / w) * img.size[1])
+            # Resize width to max 600px
+            if img.size[0] > 600:
+                new_h = int((600 / img.size[0]) * img.size[1])
                 img = img.resize((600, new_h), Image.Resampling.LANCZOS)
 
             # Convert to RGB (remove alpha) for JPEG
