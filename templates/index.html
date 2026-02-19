@@ -46,7 +46,7 @@
         .app-header {
             background-color: #1a1a1a;
             color: white;
-            padding: 12px 24px;
+            padding: 16px 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -57,43 +57,51 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 16px;
         }
 
         .header-left img {
-            height: 48px;
+            height: 60px;
+            /* Increased size for full logo */
             width: auto;
         }
 
-        .app-title {
-            font-size: 24px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
-        }
+        /* .app-title removed as it's in the logo now */
 
         .header-right {
             display: flex;
             align-items: center;
-            gap: 12px;
-            font-size: 18px;
-            font-weight: 500;
+            gap: 16px;
         }
 
-        .header-link {
+        .header-btn {
+            background: rgba(255, 255, 255, 0.08);
+            /* Subtle glass effect */
             color: white;
             text-decoration: none;
             cursor: pointer;
-            transition: color 0.2s;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .header-link:hover {
-            color: var(--md-sys-color-primary);
+        .header-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
         }
 
-        .separator {
-            color: #666;
-            font-weight: 300;
+        .header-btn i,
+        .header-btn svg {
+            opacity: 0.7;
         }
+
+        /* Specific style for Settings to highlight it slightly differently if needed, 
+           or keep uniform. Let's keep uniform for now but maybe clean icons? */
 
         .container {
             display: flex;
@@ -402,15 +410,28 @@
 
     <div class="app-header">
         <div class="header-left">
-            <img src="/static/images/logo.png" alt="Logo">
-            <span class="app-title">OrchestraPad</span>
+            <img src="/static/images/logo.png" alt="OrchestraPad Logo">
         </div>
         <div class="header-right">
-            <a href="/settings" class="header-link">Einstellungen</a>
-            <span class="separator">/</span>
-            <span class="header-link" onclick="systemAction('exit')">Beenden</span>
-            <span class="separator">/</span>
-            <span class="header-link" onclick="systemAction('shutdown')">Ausschalten</span>
+            <a href="/settings" class="header-btn">
+                <svg width="20" height="20" style="margin-right: 6px;">
+                    <use href="#icon-settings" />
+                </svg>
+                Einstellungen
+            </a>
+            <div class="header-btn" onclick="systemAction('exit')">
+                <svg width="20" height="20" style="margin-right: 6px;">
+                    <use href="#icon-exit" />
+                </svg>
+                Beenden
+            </div>
+            <div class="header-btn" onclick="systemAction('shutdown')"
+                style="background: rgba(211, 47, 47, 0.2); color: #ffdad9;">
+                <svg width="20" height="20" style="margin-right: 6px;">
+                    <use href="#icon-power" />
+                </svg>
+                Ausschalten
+            </div>
         </div>
     </div>
 
